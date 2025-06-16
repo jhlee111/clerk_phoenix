@@ -50,7 +50,7 @@ defmodule YourAppWeb.Router do
   
   # Require authentication pipeline
   pipeline :require_auth do
-    plug ClerkPhoenix.Plug.AuthPlug, :require_auth, otp_app: :your_app
+    plug ClerkPhoenix.Plug.AuthPlug, mode: :require_auth, otp_app: :your_app
     plug YourApp.UserPlug  # Your app fetches user data
   end
   
@@ -187,8 +187,10 @@ plug ClerkPhoenix.Plug.AuthPlug, otp_app: :your_app
 
 ```elixir
 # Requires authentication, redirects to sign-in on failure
-plug ClerkPhoenix.Plug.AuthPlug, :require_auth, otp_app: :your_app
+plug ClerkPhoenix.Plug.AuthPlug, mode: :require_auth, otp_app: :your_app
 ```
+
+**Note**: Use `mode: :require_auth` in the options, not as a separate parameter.
 
 ### Custom Failure Handling
 
