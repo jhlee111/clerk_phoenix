@@ -91,6 +91,67 @@ defmodule ClerkPhoenix.Plug.AuthPlugTest do
     end
   end
 
+  describe "optional auth behavior" do
+    test "optional auth should never redirect regardless of failure reason" do
+      # Test that optional auth continues processing even with various failure reasons
+      conn = conn_with_session(:get, "/")
+             |> AuthPlug.call(AuthPlug.init(otp_app: :my_app))
+
+      # Should NOT redirect (halted should be false)
+      assert conn.halted == false
+      
+      # Should set unauthenticated assigns
+      assert conn.assigns.authenticated? == false
+      assert conn.assigns.identity == nil
+      assert conn.assigns.auth_context == nil
+      assert conn.assigns.token_claims == nil
+    end
+
+    test "optional auth should continue without flash messages" do
+      conn = conn_with_session(:get, "/")
+             |> AuthPlug.call(AuthPlug.init(otp_app: :my_app))
+
+      # Should continue processing (not halted)
+      assert conn.halted == false
+      
+      # No flash messages should be set in optional auth
+      assert Phoenix.Flash.get(conn.assigns.flash || %{}, :info) == nil
+      assert Phoenix.Flash.get(conn.assigns.flash || %{}, :error) == nil
+    end
+
+    test "no token should continue without authentication in optional auth" do
+      conn = conn_with_session(:get, "/")
+             |> AuthPlug.call(AuthPlug.init(otp_app: :my_app))
+
+      # Should continue processing
+      assert conn.halted == false
+      
+      # Should set unauthenticated assigns
+      assert conn.assigns.authenticated? == false
+      assert conn.assigns.identity == nil
+      assert conn.assigns.auth_context == nil
+      assert conn.assigns.token_claims == nil
+    end
+  end
+
+  describe "required auth with expired sessions" do
+    test "expired session SHOULD redirect in required auth mode" do
+      expired_token = "expired_session_token"
+      
+      conn = conn_with_session(:get, "/member")
+             |> put_session("clerk_phoenix_session_token", expired_token)
+             |> AuthPlug.call(AuthPlug.init(mode: :require_auth, otp_app: :my_app))
+
+      # Should redirect (halted should be true)
+      assert conn.halted == true
+      assert conn.status == 302
+      
+      # Should have redirect location
+      location = get_resp_header(conn, "location") |> List.first()
+      assert location == "/sign-in"
+    end
+  end
+
   describe "configuration" do
     test "validates required otp_app configuration" do
       assert_raise RuntimeError, ~r/Could not determine OTP app/, fn ->

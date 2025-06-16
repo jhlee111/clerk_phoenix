@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2024-06-16
+
+### Fixed
+- **Optional Auth Redirect Loop**: Fixed infinite redirect loop in optional authentication mode when JWT sessions expire
+- Optional auth now clears expired sessions silently and continues unauthenticated instead of redirecting to sign-in
+- Preserves Clerk's development flow using `__session` cookie for cross-origin authentication
+- Updated README with correct plug syntax examples
+
+### Technical Details
+- Modified `ClerkPhoenix.Plug.AuthPlug` to handle `:session_expired` correctly in optional auth mode
+- Added tests to verify optional auth behavior never redirects
+- Fixed documentation examples showing incorrect `plug/3` syntax
+
 ## [0.1.0] - 2024-06-16
 
 ### Added

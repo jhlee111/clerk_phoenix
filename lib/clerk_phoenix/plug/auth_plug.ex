@@ -124,25 +124,21 @@ defmodule ClerkPhoenix.Plug.AuthPlug do
               Logger.debug("Handling auth failure with redirect")
               handle_auth_failure(conn, otp_app, opts, reason)
             _ ->
-              # Even in optional auth, handle expired sessions specially
-              case reason do
-                :session_expired ->
-                  Logger.info("Session expired in optional auth mode, clearing session")
-                  # Clear any stale session data and redirect to sign-in
-                  conn
-                  |> configure_session(drop: true)
-                  |> put_flash(:info, Config.session_expired_message(otp_app))
-                  |> redirect(to: Config.sign_in_url(otp_app))
-                  |> halt()
-                _ ->
-                  Logger.debug("Optional auth - setting nil assigns")
-                  # Optional auth - continue without authentication
-                  conn
-                  |> assign(:authenticated?, false)
-                  |> assign(:identity, nil)
-                  |> assign(:auth_context, nil)
-                  |> assign(:token_claims, nil)
+              Logger.debug("Optional auth - setting nil assigns")
+              # Optional auth - continue without authentication for ANY failure reason
+              # Clear session data if it was expired, but don't redirect
+              conn_with_clean_session = if reason == :session_expired do
+                Logger.info("Session expired in optional auth mode, clearing session silently")
+                configure_session(conn, drop: true)
+              else
+                conn
               end
+              
+              conn_with_clean_session
+              |> assign(:authenticated?, false)
+              |> assign(:identity, nil)
+              |> assign(:auth_context, nil)
+              |> assign(:token_claims, nil)
           end
       end
     end
