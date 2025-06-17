@@ -9,7 +9,7 @@ defmodule ClerkPhoenix.SessionSecurity do
   - Replay attacks through timestamps
   - Session tampering through integrity checks
 
-  This module integrates with ClerkPhoenix.Security.Monitor for comprehensive
+  This module provides comprehensive
   security event logging and analysis.
   """
 

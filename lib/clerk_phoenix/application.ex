@@ -7,7 +7,7 @@ defmodule ClerkPhoenix.Application do
   def start(_type, _args) do
     children = [
       # Core authentication modules only
-      # Future: Add modules like TokenBlacklist, Security.Monitor when needed
+      # Future: Add modules like TokenBlacklist when needed
     ]
 
     opts = [strategy: :one_for_one, name: ClerkPhoenix.Supervisor]
