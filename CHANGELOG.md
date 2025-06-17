@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2025-06-17
+
+### Removed
+- **Obsolete Dependencies**: Removed Jason dependency since JSON is now built into Elixir
+- **Obsolete Middleware**: Removed AuthPipeline middleware with references to deleted RBAC/Security modules
+- **Documentation Cleanup**: Removed references to deleted Security.Monitor and other removed modules
+
+### Changed
+- **JSON Handling**: Modernized to use built-in JSON module instead of Jason
+- **README**: Comprehensive update with working examples based on clerk_demo implementation
+- **Documentation**: Updated module documentation groups to reflect current architecture
+- **Template Syntax**: Fixed examples to use .heex instead of .eex
+
+### Fixed
+- **Tests**: Updated to use correct function names and proper assertions
+- **Compiler Warnings**: Removed unused variables and obsolete references
+- **Version Numbers**: Updated examples to reflect current 0.1.x series
+
 ## [0.1.1] - 2024-06-16
 
 ### Fixed
