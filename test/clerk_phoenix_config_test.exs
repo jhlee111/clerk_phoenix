@@ -41,13 +41,17 @@ defmodule ClerkPhoenix.ConfigTest do
     end
 
     test "provides JavaScript configuration" do
-      js_config = Config.for_javascript(:my_app)
+      js_config_json = Config.get_clerk_javascript_config(:my_app)
 
+      # Should return JSON string for frontend consumption
+      assert is_binary(js_config_json)
+      
+      # Should be valid JSON
+      js_config = JSON.decode!(js_config_json)
+      
       # Frontend JavaScript relies on this structure
-      assert js_config.publishableKey == "pk_test"
-      assert js_config.frontendApiUrl == "https://test.clerk.dev"
-      assert js_config.routes.sign_in == "/sign-in"
-      assert js_config.elements.user_button == "clerk-user-button"
+      assert js_config["signInUrl"] == "/sign-in"
+      assert js_config["afterSignOutUrl"] == "/"
     end
 
     test "includes identity mapping configuration" do
