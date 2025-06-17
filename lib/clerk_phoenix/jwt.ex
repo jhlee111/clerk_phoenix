@@ -87,7 +87,7 @@ defmodule ClerkPhoenix.JWT do
       [header_b64, _payload_b64, _signature_b64] ->
         try do
           header_json = Base.decode64!(header_b64, padding: false)
-          header = Jason.decode!(header_json)
+          header = JSON.decode!(header_json)
           {:ok, header}
         rescue
           _ -> {:error, :invalid_header}
@@ -294,7 +294,7 @@ defmodule ClerkPhoenix.JWT do
               [_header_b64, payload_b64, _signature_b64] ->
                 try do
                   payload_json = Base.decode64!(payload_b64, padding: false)
-                  claims = Jason.decode!(payload_json)
+                  claims = JSON.decode!(payload_json)
 
                   exp = claims["exp"]
                   current_time = System.system_time(:second)

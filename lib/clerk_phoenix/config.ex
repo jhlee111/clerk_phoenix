@@ -14,6 +14,7 @@ defmodule ClerkPhoenix.Config do
       sign_in: "/sign-in",
       sign_out: "/sign-out",
       after_sign_in: "/dashboard",
+      after_sign_up: "/onboard",
       after_sign_out: "/",
       home: "/"
     },
@@ -107,12 +108,17 @@ defmodule ClerkPhoenix.Config do
   @doc """
   Gets the sign-out URL for the given OTP app.
   """
-  def sign_out_url(otp_app), do: get(otp_app, [:routes, :sign_out])
+  def sign_up_url(otp_app), do: get(otp_app, [:routes, :sign_up])
 
   @doc """
   Gets the after sign-in URL for the given OTP app.
   """
   def after_sign_in_url(otp_app), do: get(otp_app, [:routes, :after_sign_in])
+
+  @doc """
+  Gets the after sign-up URL for the given OTP app.
+  """
+  def after_sign_up_url(otp_app), do: get(otp_app, [:routes, :after_sign_up])
 
   @doc """
   Gets the after sign-out URL for the given OTP app.
@@ -149,15 +155,15 @@ defmodule ClerkPhoenix.Config do
         elements: %{...}
       }
   """
-  def for_javascript(otp_app) do
-    config = get_config(otp_app)
-
+  def get_clerk_javascript_config(otp_app) do
     %{
-      publishableKey: config.publishable_key,
-      frontendApiUrl: config.frontend_api_url,
-      routes: config.routes,
-      elements: config.elements
+      signInUrl: sign_in_url(otp_app),
+      signUpUrl: sign_up_url(otp_app),
+      signInFallbackRedirectUrl: after_sign_in_url(otp_app),
+      signUpFallbackRedirectUrl: after_sign_up_url(otp_app),
+      afterSignOutUrl: after_sign_out_url(otp_app)
     }
+    |> JSON.encode!()
   end
 
   @doc """
@@ -189,8 +195,8 @@ defmodule ClerkPhoenix.Config do
 
     if missing_keys != [] do
       raise "Missing required ClerkPhoenix configuration for #{otp_app}: #{inspect(missing_keys)}. " <>
-            "Please ensure the following environment variables are set: " <>
-            "CLERK_PUBLISHABLE_KEY, CLERK_SECRET_KEY, CLERK_FRONTEND_API_URL"
+              "Please ensure the following environment variables are set: " <>
+              "CLERK_PUBLISHABLE_KEY, CLERK_SECRET_KEY, CLERK_FRONTEND_API_URL"
     end
 
     :ok
@@ -202,9 +208,11 @@ defmodule ClerkPhoenix.Config do
     case Application.get_env(otp_app, ClerkPhoenix) do
       nil ->
         raise "No ClerkPhoenix configuration found for #{otp_app}. " <>
-              "Please add ClerkPhoenix configuration to your config files."
+                "Please add ClerkPhoenix configuration to your config files."
+
       config when is_list(config) ->
         Enum.into(config, %{})
+
       config when is_map(config) ->
         config
     end

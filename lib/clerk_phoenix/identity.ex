@@ -147,7 +147,7 @@ defmodule ClerkPhoenix.Identity do
   """
   def estimate_size(identity) when is_map(identity) do
     identity
-    |> Jason.encode!()
+    |> JSON.encode!()
     |> byte_size()
   end
 

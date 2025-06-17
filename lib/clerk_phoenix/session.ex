@@ -309,7 +309,7 @@ defmodule ClerkPhoenix.Session do
   defp estimate_data_size(data) do
     try do
       data
-      |> Jason.encode!()
+      |> JSON.encode!()
       |> byte_size()
     rescue
       _ -> 0

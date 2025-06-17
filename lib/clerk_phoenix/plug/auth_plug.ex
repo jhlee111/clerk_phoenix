@@ -129,7 +129,9 @@ defmodule ClerkPhoenix.Plug.AuthPlug do
               # Clear session data if it was expired, but don't redirect
               conn_with_clean_session = if reason == :session_expired do
                 Logger.info("Session expired in optional auth mode, clearing session silently")
-                configure_session(conn, drop: true)
+                conn
+                |> configure_session(drop: true)
+                |> delete_resp_cookie("__session", path: "/", domain: nil)
               else
                 conn
               end
@@ -375,7 +377,7 @@ defmodule ClerkPhoenix.Plug.AuthPlug do
 
   defp estimate_identity_size(identity) do
     identity
-    |> Jason.encode!()
+    |> JSON.encode!()
     |> byte_size()
   end
 
