@@ -2,6 +2,14 @@
 
 A focused authentication library for Phoenix applications that integrates with Clerk without making assumptions about user management or business logic.
 
+## Introduction
+
+I am quite new to Elixir and made this library for my own use using [Claude Code](https://claude.ai/code). This library is currently a personal project and is not officially supported or endorsed by Clerk. Use at your own discretion.
+
+## ⚠️ Disclaimer
+
+**This software is provided "as is" without warranty of any kind.** I cannot be held responsible for any damages, data loss, security issues, or other problems that may arise from using this library. Use this software at your own risk and always thoroughly test in your own environment before deploying to production.
+
 ## Design Philosophy
 
 ClerkPhoenix is designed around a core principle: **authentication libraries should handle authentication, not user management**. 
@@ -13,12 +21,26 @@ This separation creates cleaner boundaries, better flexibility, and allows appli
 
 ## Installation
 
-Add `clerk_phoenix` to your list of dependencies in `mix.exs`:
+**Note: This package is not published on Hex.** Add `clerk_phoenix` to your list of dependencies in `mix.exs` using the GitHub repository:
 
 ```elixir
 def deps do
   [
-    {:clerk_phoenix, "~> 0.1.1"}
+    {:clerk_phoenix, git: "https://github.com/jhlee111/clerk_phoenix.git", tag: "v0.1.2"}
+  ]
+end
+```
+
+Alternatively, you can use a specific branch or commit:
+
+```elixir
+def deps do
+  [
+    # Use latest main branch
+    {:clerk_phoenix, git: "https://github.com/jhlee111/clerk_phoenix.git", branch: "main"}
+    
+    # Or use a specific commit
+    # {:clerk_phoenix, git: "https://github.com/jhlee111/clerk_phoenix.git", ref: "commit_hash"}
   ]
 end
 ```
