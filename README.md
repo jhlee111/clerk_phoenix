@@ -18,7 +18,7 @@ Add `clerk_phoenix` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:clerk_phoenix, "~> 1.0.0"}
+    {:clerk_phoenix, "~> 0.1.1"}
   ]
 end
 ```
@@ -30,11 +30,36 @@ end
 Configure ClerkPhoenix in your `config/runtime.exs`:
 
 ```elixir
+# For environment variables from .env file (optional)
+import Dotenvy
+
+if File.exists?(".env") do
+  source!([".env", System.get_env()])
+end
+
 config :your_app, ClerkPhoenix,
   # Required Clerk credentials
-  publishable_key: System.get_env("CLERK_PUBLISHABLE_KEY"),
-  secret_key: System.get_env("CLERK_SECRET_KEY"),
-  frontend_api_url: System.get_env("CLERK_FRONTEND_API_URL")
+  publishable_key: env!("CLERK_PUBLISHABLE_KEY"),
+  secret_key: env!("CLERK_SECRET_KEY"),
+  frontend_api_url: env!("CLERK_FRONTEND_API_URL"),
+  # Optional
+  api_url: System.get_env("CLERK_API_URL", "https://api.clerk.com"),
+  routes: %{
+    sign_in: "/sign-in",
+    sign_out: "/sign-out",
+    after_sign_in: "/member",
+    after_sign_out: "/not-signed-in"
+  },
+  messages: %{
+    auth_required: "Please sign in to continue.",
+    session_expired: "Your session has expired. Please sign in again."
+  }
+```
+
+Add Dotenvy to your `mix.exs` dependencies for .env file support:
+
+```elixir
+{:dotenvy, "~> 1.0.0"}
 ```
 
 ### 2. Router Setup
@@ -42,6 +67,16 @@ config :your_app, ClerkPhoenix,
 ```elixir
 defmodule YourAppWeb.Router do
   use YourAppWeb, :router
+  
+  pipeline :browser do
+    plug :accepts, ["html"]
+    plug :fetch_session
+    plug :fetch_live_flash
+    plug :put_root_layout, html: {YourAppWeb.Layouts, :root}
+    plug :protect_from_forgery
+    plug :put_secure_browser_headers
+    plug :assign_clerk_config  # Make Clerk config available globally
+  end
   
   # Authentication pipeline (optional auth)
   pipeline :auth do
@@ -54,6 +89,13 @@ defmodule YourAppWeb.Router do
     plug YourApp.UserPlug  # Your app fetches user data
   end
   
+  # Public routes (no authentication)
+  scope "/", YourAppWeb do
+    pipe_through :browser
+    get "/sign-in", PageController, :sign_in
+    get "/sign-up", PageController, :sign_up
+  end
+  
   scope "/", YourAppWeb do
     pipe_through [:browser, :auth]
     get "/", PageController, :home
@@ -61,7 +103,13 @@ defmodule YourAppWeb.Router do
   
   scope "/", YourAppWeb do
     pipe_through [:browser, :require_auth]
-    get "/dashboard", PageController, :dashboard
+    get "/member", PageController, :member
+  end
+  
+  # Private function to make Clerk config available in all templates
+  defp assign_clerk_config(conn, _opts) do
+    clerk_config = Application.get_env(:your_app, ClerkPhoenix, [])
+    assign(conn, :clerk_config, clerk_config)
   end
 end
 ```
@@ -94,7 +142,7 @@ defmodule YourAppWeb.DashboardController do
     identity = ClerkPhoenix.Plug.AuthPlug.identity(conn)
     user = conn.assigns.current_user
     
-    render(conn, :dashboard, user: user, identity: identity)
+    render(conn, :member, user: user, identity: identity)
   end
 end
 ```
@@ -137,17 +185,17 @@ ClerkPhoenix.Plug.AuthPlug.token_claims(conn)
 ```elixir
 config :your_app, ClerkPhoenix,
   # Required
-  publishable_key: System.get_env("CLERK_PUBLISHABLE_KEY"),
-  secret_key: System.get_env("CLERK_SECRET_KEY"),
-  frontend_api_url: System.get_env("CLERK_FRONTEND_API_URL"),
+  publishable_key: env!("CLERK_PUBLISHABLE_KEY"),
+  secret_key: env!("CLERK_SECRET_KEY"),
+  frontend_api_url: env!("CLERK_FRONTEND_API_URL"),
   
   # Optional
   api_url: System.get_env("CLERK_API_URL", "https://api.clerk.com"),
   routes: %{
     sign_in: "/sign-in",
     sign_out: "/sign-out",
-    after_sign_in: "/dashboard",
-    after_sign_out: "/"
+    after_sign_in: "/member",
+    after_sign_out: "/not-signed-in"
   },
   messages: %{
     auth_required: "Please sign in to continue.",
@@ -226,55 +274,23 @@ end
 defmodule YourAppWeb.DashboardLive do
   use YourAppWeb, :live_view
   
-  def mount(_params, _session, socket) do
-    identity = ClerkPhoenix.Plug.AuthPlug.identity(socket)
-    user = YourApp.Users.get_by_clerk_id(identity["sub"])
+  def mount(_params, session, socket) do
+    # Access authentication data from session assigns
+    authenticated? = Map.get(session, "authenticated?", false)
+    identity = Map.get(session, "identity")
     
-    {:ok, assign(socket, user: user, identity: identity)}
+    # Fetch user data if authenticated
+    user = if authenticated? && identity do
+      YourApp.Users.get_by_clerk_id(identity["sub"])
+    else
+      nil
+    end
+    
+    {:ok, assign(socket, user: user, identity: identity, authenticated?: authenticated?)}
   end
 end
 ```
 
-## Migration Guide
-
-### Removed Modules
-
-ClerkPhoenix has been refactored to focus purely on authentication. The following modules have been removed:
-
-#### RBAC System
-- **Removed**: `ClerkPhoenix.RBAC.Middleware`, `ClerkPhoenix.RBAC.Role`
-- **Reason**: Authorization is application-specific business logic
-- **Alternative**: Use dedicated authorization libraries like [Bodyguard](https://github.com/schrockwell/bodyguard) or [Canada](https://github.com/jarednorman/canada)
-
-#### Frontend Helpers
-- **Removed**: `ClerkPhoenix.Frontend.AuthHelpers`
-- **Reason**: Clerk provides official JavaScript SDK
-- **Alternative**: Use [@clerk/clerk-js](https://clerk.com/docs/references/javascript/overview) for frontend integration
-
-#### API Authentication Layer
-- **Removed**: `ClerkPhoenix.API.*` modules
-- **Reason**: Duplicated core authentication functionality
-- **Alternative**: Use core ClerkPhoenix authentication with Clerk-generated tokens
-
-#### Security Monitoring
-- **Removed**: `ClerkPhoenix.Security.Monitor`
-- **Reason**: Application-specific monitoring and alerting
-- **Alternative**: Use your application's logging and monitoring tools
-
-### API Changes
-
-#### Before (Old API)
-```elixir
-user = ClerkPhoenix.Plug.AuthPlug.current_user(conn)
-user_id = user["id"]
-```
-
-#### After (New API)
-```elixir
-identity = ClerkPhoenix.Plug.AuthPlug.identity(conn)
-clerk_id = identity["sub"]
-user = YourApp.Users.get_by_clerk_id(clerk_id)
-```
 
 ## Security Features
 
@@ -286,9 +302,92 @@ user = YourApp.Users.get_by_clerk_id(clerk_id)
 
 ## Frontend Integration
 
-For frontend integration, use the official Clerk JavaScript library [@clerk/clerk-js](https://clerk.com/docs/references/javascript/overview) along with ClerkPhoenix for backend authentication.
+ClerkPhoenix focuses on backend authentication while frontend integration uses Clerk's official JavaScript SDK.
 
-ClerkPhoenix focuses purely on backend authentication - frontend integration should use Clerk's official JavaScript SDK.
+### ClerkJS CDN Integration
+
+Add the Clerk JavaScript SDK to your root layout template:
+
+```heex
+<!-- In your root.html.heex -->
+<script
+  async
+  crossorigin="anonymous"
+  data-clerk-publishable-key={@clerk_config[:publishable_key]}
+  src={"#{@clerk_config[:frontend_api_url]}/npm/@clerk/clerk-js@5/dist/clerk.browser.js"}
+  type="text/javascript"
+>
+</script>
+<script>
+  window.__clerk_config__ = <%= ClerkPhoenix.Config.get_clerk_javascript_config(:your_app) |> Phoenix.HTML.raw %>
+</script>
+```
+
+### JavaScript Initialization
+
+Initialize Clerk in your `app.js`:
+
+```javascript
+window.addEventListener('load', async () => {
+  if (!window.Clerk) {
+    console.error('Clerk is not loaded')
+    return
+  }
+
+  try {
+    await window.Clerk.load(window.__clerk_config__)
+    console.log('Clerk loaded successfully')
+
+    // Mount Clerk UI components
+    const userButtonElement = document.getElementById('clerk-user-button')
+    const signInElement = document.getElementById('clerk-sign-in')
+    const signUpElement = document.getElementById('clerk-sign-up')
+
+    if (userButtonElement) {
+      window.Clerk.mountUserButton(userButtonElement)
+    }
+
+    if (signInElement) {
+      window.Clerk.mountSignIn(signInElement)
+    }
+    
+    if (signUpElement) {
+      window.Clerk.mountSignUp(signUpElement)
+    }
+  } catch (error) {
+    console.error('Error loading Clerk:', error)
+  }
+})
+```
+
+### Template Integration
+
+Access Clerk configuration and authentication state in templates:
+
+```heex
+<!-- Access nested config values -->
+<%= @clerk_config[:routes][:sign_in] %>
+
+<!-- Conditional rendering based on authentication -->
+<%= if @authenticated? do %>
+  <div id="clerk-user-button"></div>
+<% else %>
+  <a href={@clerk_config[:routes][:sign_in]}>Sign In</a>
+<% end %>
+
+<!-- Mount Clerk components -->
+<div id="clerk-sign-in"></div>
+<div id="clerk-sign-up"></div>
+```
+
+### Safe Config Access
+
+Use `get_in/3` for safe nested access with fallbacks:
+
+```heex
+<%= get_in(@clerk_config, [:routes, :sign_in]) || "/sign-in" %>
+<%= get_in(@clerk_config, [:messages, :auth_required]) || "Please sign in" %>
+```
 
 ## Contributing
 
