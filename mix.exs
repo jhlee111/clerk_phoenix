@@ -34,7 +34,6 @@ defmodule ClerkPhoenix.MixProject do
       {:joken, "~> 2.6"},
       {:jose, "~> 1.11"},
       {:req, "~> 0.4"},
-      {:jason, "~> 1.4"},
 
       # Development and testing
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
@@ -76,8 +75,7 @@ defmodule ClerkPhoenix.MixProject do
           ClerkPhoenix.Config
         ],
         "Plugs": [
-          ClerkPhoenix.Plug.AuthPlug,
-          ClerkPhoenix.Plug.SecurityPlug
+          ClerkPhoenix.Plug.AuthPlug
         ],
         "JWT & Tokens": [
           ClerkPhoenix.JWT,
@@ -88,9 +86,9 @@ defmodule ClerkPhoenix.MixProject do
           ClerkPhoenix.Session,
           ClerkPhoenix.SessionSecurity
         ],
-        "Security": [
-          ClerkPhoenix.Security.Monitor,
-          ClerkPhoenix.Security.Config
+        "Identity": [
+          ClerkPhoenix.Identity,
+          ClerkPhoenix.AuthContext
         ]
       ]
     ]
