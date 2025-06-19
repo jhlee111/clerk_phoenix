@@ -29,6 +29,8 @@ This separation creates cleaner boundaries, better flexibility, and allows appli
 
 **Note: This package is not published on Hex.** Add `clerk_phoenix` to your list of dependencies in `mix.exs` using the GitHub repository:
 
+### Recommended: Use Stable Release Tag
+
 ```elixir
 def deps do
   [
@@ -37,19 +39,32 @@ def deps do
 end
 ```
 
-Alternatively, you can use a specific branch or commit:
+### Available Release Tags
+
+| Version | Release Date | Commit | Description |
+|---------|-------------|---------|-------------|
+| `v0.1.2` | 2 days ago | `b4408b8` | Latest stable - Comprehensive cleanup and modernization |
+| `v0.1.1` | 3 days ago | `7d84e71` | Fixed optional auth redirect loop |
+| `v0.1.0` | 3 days ago | `c7b8a5e` | Initial release |
+
+### Alternative Installation Methods
 
 ```elixir
 def deps do
   [
-    # Use latest main branch
-    {:clerk_phoenix, git: "https://github.com/jhlee111/clerk_phoenix.git", branch: "main"}
+    # Use a specific version tag (recommended for production)
+    {:clerk_phoenix, git: "https://github.com/jhlee111/clerk_phoenix.git", tag: "v0.1.2"},
     
-    # Or use a specific commit
-    # {:clerk_phoenix, git: "https://github.com/jhlee111/clerk_phoenix.git", ref: "commit_hash"}
+    # Use latest main branch (for development)
+    {:clerk_phoenix, git: "https://github.com/jhlee111/clerk_phoenix.git", branch: "main"},
+    
+    # Use a specific commit
+    {:clerk_phoenix, git: "https://github.com/jhlee111/clerk_phoenix.git", ref: "b4408b8"}
   ]
 end
 ```
+
+**💡 Tip:** Use tagged versions for production applications to ensure stability.
 
 ## Quick Start
 
