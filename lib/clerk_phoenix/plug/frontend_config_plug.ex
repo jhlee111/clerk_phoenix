@@ -59,7 +59,9 @@ defmodule ClerkPhoenix.Plug.FrontendConfigPlug do
     if Mix.env() == :test do
       conn
     else
-      assign_clerk_config(conn, otp_app)
+      conn
+      |> assign_clerk_config(otp_app)
+      |> store_clerk_config_in_session()
     end
   end
   
@@ -86,5 +88,13 @@ defmodule ClerkPhoenix.Plug.FrontendConfigPlug do
     |> Map.put(:sign_up_url, config[:sign_up_url] || @default_config.sign_up_url)
     |> Map.put(:after_sign_in_url, config[:after_sign_in_url] || @default_config.after_sign_in_url)
     |> Map.put(:after_sign_up_url, config[:after_sign_up_url] || @default_config.after_sign_up_url)
+  end
+
+  # Store clerk config in session for LiveView access
+  defp store_clerk_config_in_session(conn) do
+    case conn.assigns[:clerk_config] do
+      nil -> conn
+      clerk_config -> put_session(conn, "clerk_config", clerk_config)
+    end
   end
 end

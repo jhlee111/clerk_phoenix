@@ -141,6 +141,7 @@ defmodule ClerkPhoenix.Plug.AuthPlug do
               |> assign(:identity, nil)
               |> assign(:auth_context, nil)
               |> assign(:token_claims, nil)
+              |> clear_liveview_session_data()
           end
       end
     end
@@ -198,6 +199,7 @@ defmodule ClerkPhoenix.Plug.AuthPlug do
         |> assign(:identity, nil)
         |> assign(:auth_context, nil)
         |> assign(:token_claims, nil)
+        |> clear_liveview_session_data()
     end
   end
 
@@ -265,6 +267,7 @@ defmodule ClerkPhoenix.Plug.AuthPlug do
     |> assign(:identity, nil)
     |> assign(:auth_context, nil)
     |> assign(:token_claims, nil)
+    |> clear_liveview_session_data()
     |> put_flash(:info, "You have been signed out successfully.")
     |> redirect(to: Config.after_sign_out_url(otp_app))
     |> halt()
@@ -329,6 +332,9 @@ defmodule ClerkPhoenix.Plug.AuthPlug do
     # Store identity in session (compact format)
     result_conn = store_identity_session(conn_with_fingerprint, identity, otp_app, opts)
 
+    # Store auth data in session for LiveView access
+    result_conn = store_auth_data_for_liveview(result_conn, identity, auth_context)
+
     Logger.debug("=== ClerkPhoenix.AuthPlug.call SUCCESS END ===")
     result_conn
   end
@@ -385,5 +391,35 @@ defmodule ClerkPhoenix.Plug.AuthPlug do
     map
     |> Enum.reject(fn {_key, value} -> is_nil(value) end)
     |> Enum.into(%{})
+  end
+
+  # Store minimal auth data in session for LiveView access
+  defp store_auth_data_for_liveview(conn, identity, auth_context) do
+    # Store minimal data needed for LiveView
+    liveview_identity = %{
+      "sub" => identity["sub"],
+      "email" => identity["email"], 
+      "name" => identity["name"]
+    }
+    |> filter_nil_values()
+
+    liveview_auth_context = %{
+      "authenticated_at" => auth_context["authenticated_at"],
+      "session_id" => auth_context["session_id"]
+    }
+    |> filter_nil_values()
+
+    conn
+    |> put_session("clerk_authenticated", true)
+    |> put_session("clerk_identity", liveview_identity)
+    |> put_session("clerk_auth_context", liveview_auth_context)
+  end
+
+  # Clear LiveView session data
+  defp clear_liveview_session_data(conn) do
+    conn
+    |> delete_session("clerk_authenticated")
+    |> delete_session("clerk_identity")
+    |> delete_session("clerk_auth_context")
   end
 end
