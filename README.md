@@ -123,20 +123,7 @@ config :your_app, ClerkPhoenix,
   }
 ```
 
-Add additional dependencies to your `mix.exs`:
-
-```elixir
-def deps do
-  [
-    # ... other dependencies
-    {:clerk_phoenix, git: "https://github.com/jhlee111/clerk_phoenix.git", tag: "v0.1.2"},
-    {:dotenvy, "~> 1.0.0"}, # For .env file support
-    {:req, "~> 0.5"} # HTTP client for Clerk API
-  ]
-end
-```
-
-Run `mix deps.get` to install dependencies.
+**Additional dependencies:** You'll also need `{:dotenvy, "~> 1.0.0"}` for .env file support. Run `mix deps.get` to install dependencies.
 
 ### 4. Router Setup
 
@@ -402,20 +389,24 @@ window.addEventListener('load', async () => {
 </div>
 ```
 
-## What ClerkPhoenix Provides
+### Template Integration Tips
 
-### Connection Assigns
+Access Clerk configuration safely in templates:
 
-ClerkPhoenix sets these connection assigns:
+```heex
+<!-- Safe nested config access -->
+<%= get_in(@clerk_config, [:routes, :sign_in]) || "/sign-in" %>
+<%= get_in(@clerk_config, [:messages, :auth_required]) || "Please sign in" %>
 
-```elixir
-conn.assigns.authenticated?  # boolean - authentication status
-conn.assigns.identity       # map - extracted identity claims
-conn.assigns.auth_context   # map - authentication metadata
-conn.assigns.token_claims   # map - raw JWT claims (optional/debug)
+<!-- Conditional rendering -->
+<%= if @authenticated? do %>
+  <div id="clerk-user-button"></div>
+<% else %>
+  <a href={@clerk_config[:routes][:sign_in]}>Sign In</a>
+<% end %>
 ```
 
-### Helper Functions
+## Helper Functions
 
 ```elixir
 # Check authentication status
@@ -433,30 +424,7 @@ ClerkPhoenix.Plug.AuthPlug.auth_context(conn)
 ClerkPhoenix.Plug.AuthPlug.token_claims(conn)
 ```
 
-## Configuration Options
-
-### Basic Configuration
-
-```elixir
-config :your_app, ClerkPhoenix,
-  # Required
-  publishable_key: env!("CLERK_PUBLISHABLE_KEY"),
-  secret_key: env!("CLERK_SECRET_KEY"),
-  frontend_api_url: env!("CLERK_FRONTEND_API_URL"),
-  
-  # Optional
-  api_url: System.get_env("CLERK_API_URL", "https://api.clerk.com"),
-  routes: %{
-    sign_in: "/sign-in",
-    sign_out: "/sign-out",
-    after_sign_in: "/member",
-    after_sign_out: "/not-signed-in"
-  },
-  messages: %{
-    auth_required: "Please sign in to continue.",
-    session_expired: "Your session has expired. Please sign in again."
-  }
-```
+## Advanced Configuration
 
 ### Identity Mapping Configuration
 
@@ -554,95 +522,6 @@ end
 - **Token Blacklisting**: Support for revoked token management
 - **Session Fingerprinting**: Protection against session hijacking
 - **Rate Limiting**: Built-in protection against brute force attacks
-
-## Frontend Integration
-
-ClerkPhoenix focuses on backend authentication while frontend integration uses Clerk's official JavaScript SDK.
-
-### ClerkJS CDN Integration
-
-Add the Clerk JavaScript SDK to your root layout template:
-
-```heex
-<!-- In your root.html.heex -->
-<script
-  async
-  crossorigin="anonymous"
-  data-clerk-publishable-key={@clerk_config[:publishable_key]}
-  src={"#{@clerk_config[:frontend_api_url]}/npm/@clerk/clerk-js@5/dist/clerk.browser.js"}
-  type="text/javascript"
->
-</script>
-<script>
-  window.__clerk_config__ = <%= ClerkPhoenix.Config.get_clerk_javascript_config(:your_app) |> Phoenix.HTML.raw %>
-</script>
-```
-
-### JavaScript Initialization
-
-Initialize Clerk in your `app.js`:
-
-```javascript
-window.addEventListener('load', async () => {
-  if (!window.Clerk) {
-    console.error('Clerk is not loaded')
-    return
-  }
-
-  try {
-    await window.Clerk.load(window.__clerk_config__)
-    console.log('Clerk loaded successfully')
-
-    // Mount Clerk UI components
-    const userButtonElement = document.getElementById('clerk-user-button')
-    const signInElement = document.getElementById('clerk-sign-in')
-    const signUpElement = document.getElementById('clerk-sign-up')
-
-    if (userButtonElement) {
-      window.Clerk.mountUserButton(userButtonElement)
-    }
-
-    if (signInElement) {
-      window.Clerk.mountSignIn(signInElement)
-    }
-    
-    if (signUpElement) {
-      window.Clerk.mountSignUp(signUpElement)
-    }
-  } catch (error) {
-    console.error('Error loading Clerk:', error)
-  }
-})
-```
-
-### Template Integration
-
-Access Clerk configuration and authentication state in templates:
-
-```heex
-<!-- Access nested config values -->
-<%= @clerk_config[:routes][:sign_in] %>
-
-<!-- Conditional rendering based on authentication -->
-<%= if @authenticated? do %>
-  <div id="clerk-user-button"></div>
-<% else %>
-  <a href={@clerk_config[:routes][:sign_in]}>Sign In</a>
-<% end %>
-
-<!-- Mount Clerk components -->
-<div id="clerk-sign-in"></div>
-<div id="clerk-sign-up"></div>
-```
-
-### Safe Config Access
-
-Use `get_in/3` for safe nested access with fallbacks:
-
-```heex
-<%= get_in(@clerk_config, [:routes, :sign_in]) || "/sign-in" %>
-<%= get_in(@clerk_config, [:messages, :auth_required]) || "Please sign in" %>
-```
 
 ## Testing
 
