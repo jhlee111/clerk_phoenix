@@ -1,7 +1,7 @@
 defmodule ClerkPhoenix.MixProject do
   use Mix.Project
 
-  @version "0.1.2"
+  @version "0.1.3"
   @source_url "https://github.com/your-username/clerk_phoenix"
 
   def project do
@@ -75,7 +75,8 @@ defmodule ClerkPhoenix.MixProject do
           ClerkPhoenix.Config
         ],
         "Plugs": [
-          ClerkPhoenix.Plug.AuthPlug
+          ClerkPhoenix.Plug.AuthPlug,
+          ClerkPhoenix.Plug.FrontendConfigPlug
         ],
         "JWT & Tokens": [
           ClerkPhoenix.JWT,

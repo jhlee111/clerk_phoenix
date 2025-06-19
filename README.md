@@ -34,7 +34,7 @@ This separation creates cleaner boundaries, better flexibility, and allows appli
 ```elixir
 def deps do
   [
-    {:clerk_phoenix, git: "https://github.com/jhlee111/clerk_phoenix.git", tag: "v0.1.2"}
+    {:clerk_phoenix, git: "https://github.com/jhlee111/clerk_phoenix.git", tag: "v0.1.3"}
   ]
 end
 ```
@@ -43,7 +43,8 @@ end
 
 | Version | Release Date | Commit | Description |
 |---------|-------------|---------|-------------|
-| `v0.1.2` | 2 days ago | `b4408b8` | Latest stable - Comprehensive cleanup and modernization |
+| `v0.1.3` | Today | `TBD` | Latest stable - Added FrontendConfigPlug for complete frontend integration |
+| `v0.1.2` | 2 days ago | `b4408b8` | Comprehensive cleanup and modernization |
 | `v0.1.1` | 3 days ago | `7d84e71` | Fixed optional auth redirect loop |
 | `v0.1.0` | 3 days ago | `c7b8a5e` | Initial release |
 
@@ -53,7 +54,7 @@ end
 def deps do
   [
     # Use a specific version tag (recommended for production)
-    {:clerk_phoenix, git: "https://github.com/jhlee111/clerk_phoenix.git", tag: "v0.1.2"},
+    {:clerk_phoenix, git: "https://github.com/jhlee111/clerk_phoenix.git", tag: "v0.1.3"},
     
     # Use latest main branch (for development)
     {:clerk_phoenix, git: "https://github.com/jhlee111/clerk_phoenix.git", branch: "main"},
@@ -109,18 +110,11 @@ config :your_app, ClerkPhoenix,
   publishable_key: env!("CLERK_PUBLISHABLE_KEY"),
   secret_key: env!("CLERK_SECRET_KEY"),
   frontend_api_url: env!("CLERK_FRONTEND_API_URL"),
-  # Optional configurations
-  api_url: System.get_env("CLERK_API_URL", "https://api.clerk.com"),
-  routes: %{
-    sign_in: "/sign-in",
-    sign_out: "/sign-out",
-    after_sign_in: "/dashboard",
-    after_sign_out: "/home"
-  },
-  messages: %{
-    auth_required: "Please sign in to continue.",
-    session_expired: "Your session has expired. Please sign in again."
-  }
+  # Optional frontend route configurations
+  sign_in_url: "/sign-in",
+  sign_up_url: "/sign-up",
+  after_sign_in_url: "/dashboard",
+  after_sign_up_url: "/profile"
 ```
 
 **Additional dependencies:** You'll also need `{:dotenvy, "~> 1.0.0"}` for .env file support. Run `mix deps.get` to install dependencies.
@@ -141,7 +135,7 @@ defmodule YourAppWeb.Router do
     plug :put_root_layout, html: {YourAppWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
-    plug :assign_clerk_config # Make Clerk config available in templates
+    plug ClerkPhoenix.Plug.FrontendConfigPlug, otp_app: :your_app # Make Clerk config available in templates
   end
 
   # Optional authentication pipeline
@@ -180,11 +174,6 @@ defmodule YourAppWeb.Router do
     get "/settings", PageController, :settings
   end
 
-  # Private function plug to make Clerk config available in templates
-  defp assign_clerk_config(conn, _opts) do
-    clerk_config = Application.get_env(:your_app, ClerkPhoenix, [])
-    assign(conn, :clerk_config, clerk_config)
-  end
 end
 ```
 
@@ -198,6 +187,7 @@ ClerkPhoenix automatically sets these assigns on the connection:
 @identity       # map - extracted identity claims from JWT
 @auth_context   # map - authentication metadata
 @token_claims   # map - raw JWT claims (for debugging)
+@clerk_config   # map - frontend configuration for Clerk JavaScript SDK
 ```
 
 ## User Management Integration
@@ -272,7 +262,7 @@ Update your `lib/your_app_web/components/layouts/root.html.heex`:
     
     <!-- Clerk Configuration -->
     <script>
-      window.__clerk_config__ = <%= ClerkPhoenix.Config.get_clerk_javascript_config(:your_app) |> Phoenix.HTML.raw %>
+      window.__clerk_config__ = <%= raw(Jason.encode!(@clerk_config || %{})) %>
     </script>
   </head>
   <body>
@@ -562,7 +552,7 @@ end
 
 ### Common Issues
 
-1. **"Clerk config not found"**: Ensure you've added the `:assign_clerk_config` plug to your browser pipeline
+1. **"Clerk config not found"**: Ensure you've added `ClerkPhoenix.Plug.FrontendConfigPlug` to your browser pipeline
 2. **"Invalid token"**: Check that your secret key and publishable key match your Clerk application
 3. **"Frontend API URL not found"**: Verify your frontend API URL is correctly set in environment variables
 4. **JavaScript errors**: Make sure the Clerk script is loaded before trying to mount components
