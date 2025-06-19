@@ -34,7 +34,7 @@ This separation creates cleaner boundaries, better flexibility, and allows appli
 ```elixir
 def deps do
   [
-    {:clerk_phoenix, git: "https://github.com/jhlee111/clerk_phoenix.git", tag: "v0.1.3"}
+    {:clerk_phoenix, git: "https://github.com/jhlee111/clerk_phoenix.git", tag: "v0.1.4"}
   ]
 end
 ```
@@ -43,7 +43,8 @@ end
 
 | Version | Release Date | Commit | Description |
 |---------|-------------|---------|-------------|
-| `v0.1.3` | Today | `TBD` | Latest stable - Added FrontendConfigPlug for complete frontend integration |
+| `v0.1.4` | Today | `a110b66` | Latest stable - Added LiveView session support and bug fixes |
+| `v0.1.3` | Earlier today | `c10de57` | Added FrontendConfigPlug for complete frontend integration |
 | `v0.1.2` | 2 days ago | `b4408b8` | Comprehensive cleanup and modernization |
 | `v0.1.1` | 3 days ago | `7d84e71` | Fixed optional auth redirect loop |
 | `v0.1.0` | 3 days ago | `c7b8a5e` | Initial release |
@@ -54,7 +55,7 @@ end
 def deps do
   [
     # Use a specific version tag (recommended for production)
-    {:clerk_phoenix, git: "https://github.com/jhlee111/clerk_phoenix.git", tag: "v0.1.3"},
+    {:clerk_phoenix, git: "https://github.com/jhlee111/clerk_phoenix.git", tag: "v0.1.4"},
     
     # Use latest main branch (for development)
     {:clerk_phoenix, git: "https://github.com/jhlee111/clerk_phoenix.git", branch: "main"},

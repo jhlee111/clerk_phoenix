@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2025-06-19
+
+### Added
+- **LiveView Session Support**: Added session storage for authentication data to enable LiveView access
+- **LiveView Helper Module**: New `ClerkPhoenix.LiveView` module with authentication helpers for LiveView mounts
+- **Enhanced Session Management**: Store minimal auth data in session for cross-request access
+
+### Changed
+- **AuthPlug Enhancement**: Modified `ClerkPhoenix.Plug.AuthPlug` to store authentication data in session
+- **FrontendConfigPlug Enhancement**: Added session storage for Clerk configuration data
+- **Session Data Management**: Added proper cleanup of LiveView session data on sign-out
+
+### Fixed
+- **LiveView Authentication**: LiveView components can now access authentication state through session data
+- **Session Cleanup**: Proper clearing of session data when authentication fails or user signs out
+
+### Technical Details
+- Added `store_auth_data_for_liveview/3` function to store minimal identity and auth context in session
+- Added `clear_liveview_session_data/1` function for proper session cleanup
+- Modified authentication flow to support both connection assigns and session storage
+- Enhanced frontend config plug to store configuration in session for LiveView access
+
+## [0.1.3] - 2025-06-19
+
+### Added
+- **Frontend Configuration Plug**: New `ClerkPhoenix.Plug.FrontendConfigPlug` for complete frontend integration
+- **Template Integration**: Seamless integration with Phoenix templates via `@clerk_config` assign
+- **JavaScript SDK Configuration**: Automatic configuration for Clerk JavaScript SDK in templates
+
+### Enhanced
+- **Router Pipeline Integration**: Simplified setup with dedicated frontend config plug
+- **Template Access**: Direct access to Clerk configuration in all templates and LiveViews
+- **Documentation**: Updated README with comprehensive frontend integration examples
+
 ## [0.1.2] - 2025-06-17
 
 ### Removed

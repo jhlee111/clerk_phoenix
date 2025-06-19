@@ -1,48 +1,49 @@
-defmodule ClerkPhoenix.LiveView do
-  @moduledoc """
-  LiveView integration for ClerkPhoenix authentication.
+if Code.ensure_loaded?(Phoenix.LiveView) do
+  defmodule ClerkPhoenix.LiveView do
+    @moduledoc """
+    LiveView integration for ClerkPhoenix authentication.
 
-  This module provides `on_mount` hooks that enable authentication in Phoenix LiveView.
-  It retrieves authentication data from the session that was set by ClerkPhoenix.Plug.AuthPlug.
+    This module provides `on_mount` hooks that enable authentication in Phoenix LiveView.
+    It retrieves authentication data from the session that was set by ClerkPhoenix.Plug.AuthPlug.
 
-  ## Usage
+    ## Usage
 
-  Add the hook to your LiveView modules:
+    Add the hook to your LiveView modules:
 
-      defmodule MyAppWeb.SomeLive do
-        use MyAppWeb, :live_view
+        defmodule MyAppWeb.SomeLive do
+          use MyAppWeb, :live_view
 
-        # Require authentication - redirects if not authenticated
-        on_mount {ClerkPhoenix.LiveView, :require_auth}
+          # Require authentication - redirects if not authenticated
+          on_mount {ClerkPhoenix.LiveView, :require_auth}
 
-        # Optional authentication - continues without auth
-        on_mount {ClerkPhoenix.LiveView, :optional_auth}
-      end
+          # Optional authentication - continues without auth
+          on_mount {ClerkPhoenix.LiveView, :optional_auth}
+        end
 
-  ## Available assigns
+    ## Available assigns
 
-  After mounting, these assigns will be available:
+    After mounting, these assigns will be available:
 
-  - `@authenticated?` - boolean indicating if user is authenticated
-  - `@identity` - map with user identity data (sub, email, name)
-  - `@auth_context` - map with authentication context (session_id, authenticated_at)
-  - `@clerk_config` - map with frontend configuration for Clerk JavaScript SDK
+    - `@authenticated?` - boolean indicating if user is authenticated
+    - `@identity` - map with user identity data (sub, email, name)
+    - `@auth_context` - map with authentication context (session_id, authenticated_at)
+    - `@clerk_config` - map with frontend configuration for Clerk JavaScript SDK
 
-  ## Configuration
+    ## Configuration
 
-  Configure your OTP app in the hook options:
+    Configure your OTP app in the hook options:
 
-      on_mount {ClerkPhoenix.LiveView, {:require_auth, otp_app: :my_app}}
+        on_mount {ClerkPhoenix.LiveView, {:require_auth, otp_app: :my_app}}
 
-  If not specified, the OTP app will be detected from the LiveView module name.
-  """
+    If not specified, the OTP app will be detected from the LiveView module name.
+    """
 
-  import Phoenix.LiveView
-  import Phoenix.Component
+    import Phoenix.LiveView
+    import Phoenix.Component
 
-  alias ClerkPhoenix.Config
+    alias ClerkPhoenix.Config
 
-  require Logger
+    require Logger
 
   @doc """
   On mount callback for LiveView authentication.
@@ -59,8 +60,8 @@ defmodule ClerkPhoenix.LiveView do
   - `:otp_app` - The OTP application name for configuration
   - `:redirect_path` - Custom redirect path for unauthenticated users (default: from config)
   """
-  def on_mount(mode, _params, session, socket) when mode in [:require_auth, :optional_auth] do
-    on_mount({mode, []}, _params, session, socket)
+  def on_mount(mode, params, session, socket) when mode in [:require_auth, :optional_auth] do
+    on_mount({mode, []}, params, session, socket)
   end
 
   def on_mount({mode, opts}, _params, session, socket) when mode in [:require_auth, :optional_auth] do
@@ -163,4 +164,5 @@ defmodule ClerkPhoenix.LiveView do
       value -> value
     end
   end
+end
 end

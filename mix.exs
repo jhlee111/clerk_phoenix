@@ -1,7 +1,7 @@
 defmodule ClerkPhoenix.MixProject do
   use Mix.Project
 
-  @version "0.1.4"
+  @version "0.1.5"
   @source_url "https://github.com/your-username/clerk_phoenix"
 
   def project do
@@ -34,6 +34,7 @@ defmodule ClerkPhoenix.MixProject do
       {:joken, "~> 2.6"},
       {:jose, "~> 1.11"},
       {:req, "~> 0.4"},
+      {:phoenix_live_view, "~> 0.18 or ~> 1.0", optional: true},
 
       # Development and testing
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
@@ -90,6 +91,9 @@ defmodule ClerkPhoenix.MixProject do
         "Identity": [
           ClerkPhoenix.Identity,
           ClerkPhoenix.AuthContext
+        ],
+        "LiveView": [
+          ClerkPhoenix.LiveView
         ]
       ]
     ]
