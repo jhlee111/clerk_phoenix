@@ -19,6 +19,12 @@ ClerkPhoenix is designed around a core principle: **authentication libraries sho
 
 This separation creates cleaner boundaries, better flexibility, and allows applications to define their own user models and management patterns.
 
+## Prerequisites
+
+- Phoenix 1.7+ application
+- Clerk account and application configured ([Get started here](https://dashboard.clerk.com))
+- Basic understanding of Phoenix plugs and pipelines
+
 ## Installation
 
 **Note: This package is not published on Hex.** Add `clerk_phoenix` to your list of dependencies in `mix.exs` using the GitHub repository:
@@ -47,30 +53,54 @@ end
 
 ## Quick Start
 
-### 1. Configuration
+### 1. Get Your Clerk Keys
+
+1. Go to your [Clerk Dashboard](https://dashboard.clerk.com)
+2. Select your application
+3. Go to "API Keys" section
+4. Copy your keys
+
+### 2. Environment Variables
+
+Create a `.env` file in your project root:
+
+```bash
+CLERK_PUBLISHABLE_KEY=pk_test_your_publishable_key_here
+CLERK_SECRET_KEY=sk_test_your_secret_key_here
+CLERK_FRONTEND_API_URL=https://your-clerk-frontend-api.clerk.accounts.dev
+```
+
+**Important:** Add `.env` to your `.gitignore` file to keep secrets secure.
+
+### 3. Configuration
 
 Configure ClerkPhoenix in your `config/runtime.exs`:
 
 ```elixir
-# For environment variables from .env file (optional)
+import Config
 import Dotenvy
+require Logger
 
+# Load .env file if it exists
 if File.exists?(".env") do
+  Logger.info("found .env file")
   source!([".env", System.get_env()])
+else
+  Logger.warning("cannot find .env file to load")
 end
 
+# Configure ClerkPhoenix
 config :your_app, ClerkPhoenix,
-  # Required Clerk credentials
   publishable_key: env!("CLERK_PUBLISHABLE_KEY"),
   secret_key: env!("CLERK_SECRET_KEY"),
   frontend_api_url: env!("CLERK_FRONTEND_API_URL"),
-  # Optional
+  # Optional configurations
   api_url: System.get_env("CLERK_API_URL", "https://api.clerk.com"),
   routes: %{
     sign_in: "/sign-in",
     sign_out: "/sign-out",
-    after_sign_in: "/member",
-    after_sign_out: "/not-signed-in"
+    after_sign_in: "/dashboard",
+    after_sign_out: "/home"
   },
   messages: %{
     auth_required: "Please sign in to continue.",
@@ -78,18 +108,30 @@ config :your_app, ClerkPhoenix,
   }
 ```
 
-Add Dotenvy to your `mix.exs` dependencies for .env file support:
+Add additional dependencies to your `mix.exs`:
 
 ```elixir
-{:dotenvy, "~> 1.0.0"}
+def deps do
+  [
+    # ... other dependencies
+    {:clerk_phoenix, git: "https://github.com/jhlee111/clerk_phoenix.git", tag: "v0.1.2"},
+    {:dotenvy, "~> 1.0.0"}, # For .env file support
+    {:req, "~> 0.5"} # HTTP client for Clerk API
+  ]
+end
 ```
 
-### 2. Router Setup
+Run `mix deps.get` to install dependencies.
+
+### 4. Router Setup
+
+Update your `lib/your_app_web/router.ex`:
 
 ```elixir
 defmodule YourAppWeb.Router do
   use YourAppWeb, :router
-  
+
+  # Base browser pipeline
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -97,38 +139,46 @@ defmodule YourAppWeb.Router do
     plug :put_root_layout, html: {YourAppWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
-    plug :assign_clerk_config  # Make Clerk config available globally
+    plug :assign_clerk_config # Make Clerk config available in templates
   end
-  
-  # Authentication pipeline (optional auth)
+
+  # Optional authentication pipeline
   pipeline :auth do
     plug ClerkPhoenix.Plug.AuthPlug, otp_app: :your_app
   end
-  
-  # Require authentication pipeline
+
+  # Required authentication pipeline
   pipeline :require_auth do
     plug ClerkPhoenix.Plug.AuthPlug, mode: :require_auth, otp_app: :your_app
-    plug YourApp.UserPlug  # Your app fetches user data
+    # Add your user fetching plug here
+    # plug YourApp.UserPlug
   end
-  
-  # Public routes (no authentication)
+
+  # Public routes
   scope "/", YourAppWeb do
     pipe_through :browser
+
+    get "/", PageController, :home
     get "/sign-in", PageController, :sign_in
     get "/sign-up", PageController, :sign_up
   end
-  
+
+  # Optional auth routes (user might or might not be signed in)
   scope "/", YourAppWeb do
     pipe_through [:browser, :auth]
-    get "/", PageController, :home
+
+    get "/dashboard", PageController, :dashboard
   end
-  
+
+  # Protected routes (authentication required)
   scope "/", YourAppWeb do
     pipe_through [:browser, :require_auth]
-    get "/member", PageController, :member
+
+    get "/profile", PageController, :profile
+    get "/settings", PageController, :settings
   end
-  
-  # Private function to make Clerk config available in all templates
+
+  # Private function plug to make Clerk config available in templates
   defp assign_clerk_config(conn, _opts) do
     clerk_config = Application.get_env(:your_app, ClerkPhoenix, [])
     assign(conn, :clerk_config, clerk_config)
@@ -136,14 +186,30 @@ defmodule YourAppWeb.Router do
 end
 ```
 
-### 3. User Management (Your Responsibility)
+## Available Connection Assigns
+
+ClerkPhoenix automatically sets these assigns on the connection:
+
+```elixir
+# In your controllers and templates
+@authenticated?  # boolean - whether user is authenticated
+@identity       # map - extracted identity claims from JWT
+@auth_context   # map - authentication metadata
+@token_claims   # map - raw JWT claims (for debugging)
+```
+
+## User Management Integration
+
+ClerkPhoenix handles authentication only. For user management, create a plug to fetch your user data:
 
 ```elixir
 defmodule YourApp.UserPlug do
+  @behaviour Plug
+  
   def init(opts), do: opts
   
   def call(conn, _opts) do
-    case ClerkPhoenix.Plug.AuthPlug.identity(conn) do
+    case conn.assigns.identity do
       %{"sub" => clerk_id} ->
         user = YourApp.Users.get_by_clerk_id(clerk_id)
         Plug.Conn.assign(conn, :current_user, user)
@@ -154,19 +220,171 @@ defmodule YourApp.UserPlug do
 end
 ```
 
-### 4. Controller Usage
+Add this plug to your `:require_auth` pipeline:
 
 ```elixir
-defmodule YourAppWeb.DashboardController do
-  use YourAppWeb, :controller
-  
-  def index(conn, _params) do
-    identity = ClerkPhoenix.Plug.AuthPlug.identity(conn)
-    user = conn.assigns.current_user
-    
-    render(conn, :member, user: user, identity: identity)
-  end
+pipeline :require_auth do
+  plug ClerkPhoenix.Plug.AuthPlug, mode: :require_auth, otp_app: :your_app
+  plug YourApp.UserPlug
 end
+```
+
+## Using Clerk UI Components
+
+Clerk provides pre-built, customizable UI components that handle authentication flows. These components give you a complete authentication system without building forms from scratch.
+
+### Available Components
+
+- **SignIn**: Complete sign-in form with email, social login, phone verification
+- **SignUp**: Registration form with email verification and validation  
+- **UserButton**: User profile dropdown with account management
+- **UserProfile**: Full profile management interface
+
+### Layout Template Setup
+
+Update your `lib/your_app_web/components/layouts/root.html.heex`:
+
+```heex
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content={get_csrf_token()} />
+    <.live_title default="YourApp">
+      {assigns[:page_title]}
+    </.live_title>
+    <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
+    <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
+    </script>
+    
+    <!-- Clerk JavaScript SDK -->
+    <script
+      async
+      crossorigin="anonymous"
+      data-clerk-publishable-key={@clerk_config[:publishable_key]}
+      src={"#{@clerk_config[:frontend_api_url]}/npm/@clerk/clerk-js@5/dist/clerk.browser.js"}
+      type="text/javascript"
+    >
+    </script>
+    
+    <!-- Clerk Configuration -->
+    <script>
+      window.__clerk_config__ = <%= ClerkPhoenix.Config.get_clerk_javascript_config(:your_app) |> Phoenix.HTML.raw %>
+    </script>
+  </head>
+  <body>
+    {@inner_content}
+  </body>
+</html>
+```
+
+### JavaScript Setup
+
+Add to your `assets/js/app.js`:
+
+```javascript
+// Initialize Clerk when available
+window.addEventListener('load', async () => {
+  if (!window.Clerk) {
+    console.error('Clerk is not loaded')
+    return
+  }
+
+  try {
+    await window.Clerk.load(window.__clerk_config__)
+    console.log('Clerk loaded successfully')
+
+    // Mount Clerk UI components
+    const userButtonElement = document.getElementById('clerk-user-button')
+    const signInElement = document.getElementById('clerk-sign-in')
+    const signUpElement = document.getElementById('clerk-sign-up')
+
+    if (userButtonElement) {
+      window.Clerk.mountUserButton(userButtonElement)
+    }
+
+    if (signInElement) {
+      window.Clerk.mountSignIn(signInElement)
+    }
+    
+    if (signUpElement) {
+      window.Clerk.mountSignUp(signUpElement)
+    }
+  } catch (error) {
+    console.error('Error loading Clerk:', error)
+  }
+})
+```
+
+### Authentication Templates
+
+#### Sign In Template (`lib/your_app_web/controllers/page_html/sign_in.html.heex`)
+
+```heex
+<div class="min-h-screen flex items-center justify-center">
+  <div class="max-w-md w-full space-y-8">
+    <div>
+      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        Sign in to your account
+      </h2>
+    </div>
+    <div id="clerk-sign-in"></div>
+  </div>
+</div>
+```
+
+#### Sign Up Template (`lib/your_app_web/controllers/page_html/sign_up.html.heex`)
+
+```heex
+<div class="min-h-screen flex items-center justify-center">
+  <div class="max-w-md w-full space-y-8">
+    <div>
+      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        Create your account
+      </h2>
+    </div>
+    <div id="clerk-sign-up"></div>
+  </div>
+</div>
+```
+
+#### Protected Page Template
+
+```heex
+<div class="container mx-auto px-4 py-8">
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-3xl font-bold">Welcome to Your Dashboard</h1>
+    <div id="clerk-user-button"></div>
+  </div>
+  
+  <!-- Display authentication status -->
+  <div class="mb-4">
+    <p>Authentication Status: <strong>{if @authenticated?, do: "Signed In", else: "Not Signed In"}</strong></p>
+    
+    <!-- Display user identity if available -->
+    <div :if={@identity}>
+      <h3 class="text-lg font-semibold mt-4">User Identity:</h3>
+      <pre class="bg-gray-100 p-4 rounded mt-2"><%= JSON.encode!(@identity, pretty: true) %></pre>
+    </div>
+  </div>
+  
+  <!-- Your protected content here -->
+</div>
+```
+
+#### User Button in Navigation
+
+```heex
+<!-- Show content based on authentication status -->
+<div :if={@authenticated?}>
+  <p>Welcome back!</p>
+  <div id="clerk-user-button"></div>
+</div>
+
+<div :if={!@authenticated?}>
+  <a href="/sign-in" class="btn btn-primary">Sign In</a>
+</div>
 ```
 
 ## What ClerkPhoenix Provides
@@ -410,6 +628,82 @@ Use `get_in/3` for safe nested access with fallbacks:
 <%= get_in(@clerk_config, [:routes, :sign_in]) || "/sign-in" %>
 <%= get_in(@clerk_config, [:messages, :auth_required]) || "Please sign in" %>
 ```
+
+## Testing
+
+### Test Configuration (`config/test.exs`)
+
+```elixir
+config :your_app, ClerkPhoenix,
+  publishable_key: "pk_test_test_key",
+  secret_key: "sk_test_test_key",
+  frontend_api_url: "https://test-frontend-api.clerk.accounts.dev"
+```
+
+### Testing with Authenticated Users
+
+```elixir
+defmodule YourAppWeb.PageControllerTest do
+  use YourAppWeb.ConnCase
+  
+  test "protected page requires authentication", %{conn: conn} do
+    conn = get(conn, ~p"/profile")
+    assert redirected_to(conn) == ~p"/sign-in"
+  end
+  
+  test "protected page works with authentication", %{conn: conn} do
+    # Mock authenticated user
+    conn = 
+      conn
+      |> assign(:authenticated?, true)
+      |> assign(:identity, %{"sub" => "user_123", "email" => "test@example.com"})
+    
+    conn = get(conn, ~p"/profile")
+    assert html_response(conn, 200) =~ "Welcome to Your Dashboard"
+  end
+end
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"Clerk config not found"**: Ensure you've added the `:assign_clerk_config` plug to your browser pipeline
+2. **"Invalid token"**: Check that your secret key and publishable key match your Clerk application
+3. **"Frontend API URL not found"**: Verify your frontend API URL is correctly set in environment variables
+4. **JavaScript errors**: Make sure the Clerk script is loaded before trying to mount components
+
+### Debugging
+
+Enable debug logging in development:
+
+```elixir
+config :logger, level: :debug
+```
+
+View authentication assigns in your templates:
+
+```heex
+<div style="display: none;">
+  <pre>Auth Status: <%= inspect(@authenticated?) %></pre>
+  <pre>Identity: <%= inspect(@identity) %></pre>
+  <pre>Auth Context: <%= inspect(@auth_context) %></pre>
+</div>
+```
+
+## Security Considerations
+
+1. **Never commit secrets**: Keep `.env` files out of version control
+2. **Use environment variables**: All sensitive configuration should come from environment variables
+3. **HTTPS in production**: Always use HTTPS in production environments
+4. **Validate tokens**: ClerkPhoenix automatically validates JWT tokens using Clerk's JWKS endpoint
+5. **Session security**: Configure secure session settings in your Phoenix endpoint
+
+## Resources
+
+- [Clerk Dashboard](https://dashboard.clerk.com)
+- [Phoenix Framework Documentation](https://hexdocs.pm/phoenix)
+- [Clerk JavaScript SDK](https://clerk.com/docs/reference/javascript/overview)
 
 ## Contributing
 
