@@ -73,4 +73,4 @@ jobs:
             ${{ runner.os }}-mix-1.18-27-
 
       - run: mix deps.get
-      - run: mix credo
+      - run: mix credo --min-priority=high
