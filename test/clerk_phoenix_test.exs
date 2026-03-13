@@ -2,7 +2,7 @@ defmodule ClerkPhoenixTest do
   use ExUnit.Case
   doctest ClerkPhoenix
 
-  test "greets the world" do
-    assert ClerkPhoenix.hello() == :world
+  test "returns version" do
+    assert ClerkPhoenix.version() == "0.2.0"
   end
 end

@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-03-10
+
+### Added
+- **LiveView Components**: New `ClerkPhoenix.Components` module with Phoenix function components
+  - `clerk_script/1` — Clerk.js CDN script tag for root layout
+  - `clerk_sign_in/1` — Sign-in widget wrapped in LiveView hook
+  - `clerk_sign_up/1` — Sign-up widget wrapped in LiveView hook
+  - `clerk_sign_out/1` — Sign-out trigger via LiveView hook
+  - `clerk_session_monitor/1` — Session expiration monitor
+- **AuthEventHandler macro**: `use ClerkPhoenix.AuthEventHandler` injects LiveView `handle_event/3` handlers for Clerk auth events (`clerk:signed-in`, `clerk:error`, `clerk:session-expired`). All handlers are `defoverridable`.
+- **AuthCallback macro**: `use ClerkPhoenix.AuthCallback` injects controller actions (`callback/2`, `sign_out/2`) with `defoverridable` for customization.
+- **JavaScript hooks**: Ship-ready JS hooks for LiveView integration
+  - `ClerkAuth` — Mounts Clerk sign-in/sign-up widgets inside LiveView
+  - `ClerkSignOut` — Triggers Clerk sign-out and redirects
+  - `ClerkSessionMonitor` — Polls session status and pushes expiration events
+- **JS package**: `assets/package.json` enables `import { hooks } from "clerk_phoenix"` via esbuild
+
+### Changed
+- **Package published to Hex.pm** — no longer git-only dependency
+- Version bump from 0.1.x to 0.2.0 (new public API surface)
+
 ## [0.1.4] - 2025-06-19
 
 ### Added

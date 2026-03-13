@@ -55,14 +55,9 @@ defmodule ClerkPhoenix.Plug.FrontendConfigPlug do
   end
   
   def call(conn, %{otp_app: otp_app}) do
-    # Skip in test environment for performance
-    if Mix.env() == :test do
-      conn
-    else
-      conn
-      |> assign_clerk_config(otp_app)
-      |> store_clerk_config_in_session()
-    end
+    conn
+    |> assign_clerk_config(otp_app)
+    |> store_clerk_config_in_session()
   end
   
   defp assign_clerk_config(conn, otp_app) do

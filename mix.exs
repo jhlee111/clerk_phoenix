@@ -1,8 +1,8 @@
 defmodule ClerkPhoenix.MixProject do
   use Mix.Project
 
-  @version "0.1.5"
-  @source_url "https://github.com/your-username/clerk_phoenix"
+  @version "0.2.0"
+  @source_url "https://github.com/jhlee111/clerk_phoenix"
 
   def project do
     [
@@ -52,14 +52,14 @@ defmodule ClerkPhoenix.MixProject do
 
   defp package do
     [
-      files: ~w(lib priv mix.exs README.md LICENSE CHANGELOG.md),
+      files: ~w(lib assets mix.exs README.md LICENSE CHANGELOG.md),
       licenses: ["MIT"],
       links: %{
         "GitHub" => @source_url,
         "Clerk" => "https://clerk.com/",
         "Phoenix" => "https://phoenixframework.org/"
       },
-      maintainers: ["Your Name"]
+      maintainers: ["JH Lee"]
     ]
   end
 
@@ -93,7 +93,10 @@ defmodule ClerkPhoenix.MixProject do
           ClerkPhoenix.AuthContext
         ],
         "LiveView": [
-          ClerkPhoenix.LiveView
+          ClerkPhoenix.LiveView,
+          ClerkPhoenix.Components,
+          ClerkPhoenix.AuthEventHandler,
+          ClerkPhoenix.AuthCallback
         ]
       ]
     ]

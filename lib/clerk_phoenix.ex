@@ -18,7 +18,7 @@ defmodule ClerkPhoenix do
       ```elixir
       def deps do
         [
-          {:clerk_phoenix, "~> 0.1.0"}
+          {:clerk_phoenix, "~> 0.2.0"}
         ]
       end
       ```
@@ -130,7 +130,7 @@ defmodule ClerkPhoenix do
   @doc """
   Returns the current version of ClerkPhoenix.
   """
-  def version, do: "0.1.0"
+  def version, do: "0.2.0"
 
   @doc """
   Validates that all required configuration is present.
@@ -159,15 +159,4 @@ defmodule ClerkPhoenix do
     ClerkPhoenix.Config.get_config(otp_app)
   end
 
-  @doc """
-  Hello function for testing.
-
-  ## Examples
-
-      iex> ClerkPhoenix.hello()
-      :world
-  """
-  def hello do
-    :world
-  end
 end
