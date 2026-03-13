@@ -383,7 +383,7 @@ defmodule ClerkPhoenix.Plug.AuthPlug do
 
   defp estimate_identity_size(identity) do
     identity
-    |> JSON.encode!()
+    |> ClerkPhoenix.JSON.encode!()
     |> byte_size()
   end
 

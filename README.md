@@ -27,46 +27,42 @@ This separation creates cleaner boundaries, better flexibility, and allows appli
 
 ## Installation
 
-**Note: This package is not published on Hex.** Add `clerk_phoenix` to your list of dependencies in `mix.exs` using the GitHub repository:
-
-### Recommended: Use Stable Release Tag
+Add `clerk_phoenix` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
   [
-    {:clerk_phoenix, git: "https://github.com/jhlee111/clerk_phoenix.git", tag: "v0.1.4"}
+    {:clerk_phoenix, "~> 0.2.0"}
   ]
 end
 ```
 
-### Available Release Tags
+Then run `mix deps.get`.
 
-| Version | Release Date | Commit | Description |
-|---------|-------------|---------|-------------|
-| `v0.1.4` | Today | `a110b66` | Latest stable - Added LiveView session support and bug fixes |
-| `v0.1.3` | Earlier today | `c10de57` | Added FrontendConfigPlug for complete frontend integration |
-| `v0.1.2` | 2 days ago | `b4408b8` | Comprehensive cleanup and modernization |
-| `v0.1.1` | 3 days ago | `7d84e71` | Fixed optional auth redirect loop |
-| `v0.1.0` | 3 days ago | `c7b8a5e` | Initial release |
+### JavaScript Hooks (for LiveView integration)
 
-### Alternative Installation Methods
+ClerkPhoenix ships LiveView JS hooks. To use them, ensure your esbuild config includes `deps` in `NODE_PATH`:
 
 ```elixir
-def deps do
-  [
-    # Use a specific version tag (recommended for production)
-    {:clerk_phoenix, git: "https://github.com/jhlee111/clerk_phoenix.git", tag: "v0.1.4"},
-    
-    # Use latest main branch (for development)
-    {:clerk_phoenix, git: "https://github.com/jhlee111/clerk_phoenix.git", branch: "main"},
-    
-    # Use a specific commit
-    {:clerk_phoenix, git: "https://github.com/jhlee111/clerk_phoenix.git", ref: "b4408b8"}
+# config/config.exs
+config :esbuild,
+  version: "0.17.11",
+  your_app: [
+    args: ~w(js/app.js --bundle --target=es2017 --outdir=../priv/static/assets),
+    cd: Path.expand("../assets", __DIR__),
+    env: %{"NODE_PATH" => Path.expand("../deps", __DIR__)}
   ]
-end
 ```
 
-**💡 Tip:** Use tagged versions for production applications to ensure stability.
+Then import and register the hooks in your `assets/js/app.js`:
+
+```javascript
+import { hooks as clerkHooks } from "clerk_phoenix";
+
+const liveSocket = new LiveSocket("/live", Socket, {
+  hooks: { ...clerkHooks, /* your other hooks */ }
+});
+```
 
 ## Quick Start
 
@@ -484,23 +480,80 @@ end
 
 ### LiveView Integration
 
+ClerkPhoenix v0.2.0 provides first-class LiveView support. Instead of dead-view controllers, use LiveView pages with Clerk components:
+
+#### Root Layout
+
+Add the Clerk script tag to your `root.html.heex`:
+
+```heex
+<ClerkPhoenix.Components.clerk_script :if={assigns[:clerk_config]} config={@clerk_config} />
+```
+
+#### Auth LiveViews
+
+```elixir
+defmodule YourAppWeb.Auth.SignInLive do
+  use YourAppWeb, :live_view
+  use ClerkPhoenix.AuthEventHandler, callback_url: "/auth/callback"
+
+  def mount(_params, _session, socket) do
+    {:ok, assign(socket, page_title: "Sign In")}
+  end
+
+  def render(assigns) do
+    ~H"""
+    <div class="flex justify-center">
+      <ClerkPhoenix.Components.clerk_sign_in
+        callback_url="/auth/callback"
+        sign_up_url="/auth/sign-up"
+      />
+    </div>
+    """
+  end
+end
+```
+
+#### Auth Callback Controller
+
+The callback must remain a regular controller (LiveView WebSocket cannot read cookies set by Clerk.js):
+
+```elixir
+defmodule YourAppWeb.AuthCallbackController do
+  use YourAppWeb, :controller
+  use ClerkPhoenix.AuthCallback, after_sign_in_url: "/", after_sign_out_url: "/"
+end
+```
+
+#### Router
+
+```elixir
+live_session :clerk_auth,
+  on_mount: [{ClerkPhoenix.LiveView, {:optional_auth, otp_app: :your_app}}] do
+  scope "/auth", YourAppWeb do
+    live "/sign-in", Auth.SignInLive
+    live "/sign-up", Auth.SignUpLive
+    live "/sign-out", Auth.SignOutLive
+  end
+end
+
+scope "/auth", YourAppWeb do
+  pipe_through [:browser, :require_auth]
+  get "/callback", AuthCallbackController, :callback
+end
+```
+
+#### Protected LiveViews (via on_mount)
+
 ```elixir
 defmodule YourAppWeb.DashboardLive do
   use YourAppWeb, :live_view
-  
-  def mount(_params, session, socket) do
-    # Access authentication data from session assigns
-    authenticated? = Map.get(session, "authenticated?", false)
-    identity = Map.get(session, "identity")
-    
-    # Fetch user data if authenticated
-    user = if authenticated? && identity do
-      YourApp.Users.get_by_clerk_id(identity["sub"])
-    else
-      nil
-    end
-    
-    {:ok, assign(socket, user: user, identity: identity, authenticated?: authenticated?)}
+
+  def mount(_params, _session, socket) do
+    # ClerkPhoenix.LiveView on_mount provides:
+    # socket.assigns.authenticated? — boolean
+    # socket.assigns.identity — map with user claims
+    {:ok, socket}
   end
 end
 ```

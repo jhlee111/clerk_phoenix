@@ -47,7 +47,7 @@ defmodule ClerkPhoenix.ConfigTest do
       assert is_binary(js_config_json)
       
       # Should be valid JSON
-      js_config = JSON.decode!(js_config_json)
+      js_config = ClerkPhoenix.JSON.decode!(js_config_json)
       
       # Frontend JavaScript relies on this structure
       assert js_config["signInUrl"] == "/sign-in"

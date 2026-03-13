@@ -163,7 +163,7 @@ defmodule ClerkPhoenix.Config do
       signUpFallbackRedirectUrl: after_sign_up_url(otp_app),
       afterSignOutUrl: after_sign_out_url(otp_app)
     }
-    |> JSON.encode!()
+    |> ClerkPhoenix.JSON.encode!()
   end
 
   @doc """
