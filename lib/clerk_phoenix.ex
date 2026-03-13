@@ -130,7 +130,7 @@ defmodule ClerkPhoenix do
   @doc """
   Returns the current version of ClerkPhoenix.
   """
-  def version, do: "0.2.0"
+  def version, do: "0.2.1"
 
   @doc """
   Validates that all required configuration is present.

@@ -3,6 +3,6 @@ defmodule ClerkPhoenixTest do
   doctest ClerkPhoenix
 
   test "returns version" do
-    assert ClerkPhoenix.version() == "0.2.0"
+    assert ClerkPhoenix.version() == "0.2.1"
   end
 end

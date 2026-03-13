@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-03-13
+
+### Fixed
+- **FrontendConfigPlug crash in releases**: Removed runtime `Mix.env()` call that caused `UndefinedFunctionError` in compiled releases (#1)
+- **Elixir < 1.18 compatibility**: Added `ClerkPhoenix.JSON` wrapper with Jason fallback for projects on older Elixir versions
+- **CI**: Added GitHub Actions workflow for tests (Elixir 1.15–1.18) and Credo
+
 ## [0.2.0] - 2026-03-10
 
 ### Added
