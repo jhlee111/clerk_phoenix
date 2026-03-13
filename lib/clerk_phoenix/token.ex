@@ -102,14 +102,14 @@ defmodule ClerkPhoenix.Token do
         |> URI.decode()
         |> Base.decode64!(padding: false)
 
-      case JSON.decode(decoded) do
+      case ClerkPhoenix.JSON.decode(decoded) do
         {:ok, data} -> {:ok, data}
         {:error, _} -> {:error, :invalid_json_in_handshake}
       end
     rescue
       _ ->
         # Try without base64 decoding in case it's already decoded
-        case JSON.decode(handshake_data) do
+        case ClerkPhoenix.JSON.decode(handshake_data) do
           {:ok, data} -> {:ok, data}
           {:error, _} -> {:error, :handshake_decode_failed}
         end
