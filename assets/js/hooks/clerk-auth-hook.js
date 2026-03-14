@@ -34,9 +34,15 @@ export const ClerkAuth = {
       return;
     }
 
-    // If Clerk is already an initialized instance (by global init script or another hook), use it
+    // If Clerk is already an initialized instance (by global init script or another hook),
+    // call .load() to ensure components are ready before mounting widgets
     if (typeof window.Clerk === "object") {
-      this._onClerkReady();
+      window.Clerk.load().then(() => {
+        this._onClerkReady();
+      }).catch((err) => {
+        console.error("Clerk satellite load error:", err);
+        this.pushEvent("clerk:error", { error: err.message || "Failed to load Clerk satellite" });
+      });
       return;
     }
 
