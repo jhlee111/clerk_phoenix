@@ -15,7 +15,7 @@ defmodule ClerkPhoenix.Plug.FrontendConfigPlugTest do
   end
 
   describe "satellite config" do
-    test "default config does not include satellite fields as true" do
+    test "default config sets is_satellite to false" do
       conn =
         conn_with_session(:get, "/")
         |> FrontendConfigPlug.call(FrontendConfigPlug.init(otp_app: :my_app))
@@ -23,7 +23,7 @@ defmodule ClerkPhoenix.Plug.FrontendConfigPlugTest do
       config = conn.assigns.clerk_config
 
       assert config.is_satellite == false
-      assert config.manual_init == false
+      refute Map.has_key?(config, :domain)
       assert config.publishable_key == "pk_test"
     end
 
@@ -44,7 +44,6 @@ defmodule ClerkPhoenix.Plug.FrontendConfigPlugTest do
       config = conn.assigns.clerk_config
 
       assert config.is_satellite == true
-      assert config.manual_init == true
       assert config.primary_sign_in_url == "https://primary.example.com/sign-in"
       assert config.domain == "satellite.example.com"
     after
@@ -67,7 +66,6 @@ defmodule ClerkPhoenix.Plug.FrontendConfigPlugTest do
         |> FrontendConfigPlug.call(FrontendConfigPlug.init(otp_app: :satellite_dynamic_app))
 
       assert satellite_conn.assigns.clerk_config.is_satellite == true
-      assert satellite_conn.assigns.clerk_config.manual_init == true
 
       # Primary domain
       primary_conn =
@@ -76,7 +74,6 @@ defmodule ClerkPhoenix.Plug.FrontendConfigPlugTest do
         |> FrontendConfigPlug.call(FrontendConfigPlug.init(otp_app: :satellite_dynamic_app))
 
       assert primary_conn.assigns.clerk_config.is_satellite == false
-      assert primary_conn.assigns.clerk_config.manual_init == false
     after
       Application.delete_env(:satellite_dynamic_app, ClerkPhoenix)
     end
@@ -96,7 +93,6 @@ defmodule ClerkPhoenix.Plug.FrontendConfigPlugTest do
 
       session_config = Plug.Conn.get_session(conn, "clerk_config")
       assert session_config.is_satellite == true
-      assert session_config.manual_init == true
     after
       Application.delete_env(:satellite_session_app, ClerkPhoenix)
     end

@@ -42,7 +42,6 @@ defmodule ClerkPhoenix.Plug.FrontendConfigPlug do
   When satellite domain support is configured (`is_satellite` in config), these
   additional keys are included:
   - `:is_satellite` - Whether the current request is for a satellite domain
-  - `:manual_init` - Whether Clerk.js should skip auto-init (true for satellite)
   - `:primary_sign_in_url` - The primary domain's sign-in URL
   - `:domain` - The current request's hostname
   """
@@ -100,7 +99,6 @@ defmodule ClerkPhoenix.Plug.FrontendConfigPlug do
   defp maybe_add_satellite_config(frontend_config, true, config, conn) do
     frontend_config
     |> Map.put(:is_satellite, true)
-    |> Map.put(:manual_init, true)
     |> Map.put(:primary_sign_in_url, config[:primary_sign_in_url])
     |> Map.put(:domain, conn.host)
   end
@@ -108,7 +106,6 @@ defmodule ClerkPhoenix.Plug.FrontendConfigPlug do
   defp maybe_add_satellite_config(frontend_config, false, _config, _conn) do
     frontend_config
     |> Map.put(:is_satellite, false)
-    |> Map.put(:manual_init, false)
   end
 
   # Store clerk config in session for LiveView access

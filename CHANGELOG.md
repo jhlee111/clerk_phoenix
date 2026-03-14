@@ -13,15 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `Config.resolve_satellite_status/2` for per-request dynamic satellite detection
   - `Config.get_clerk_javascript_config/2` with satellite override support
 - **SatelliteSyncPlug**: New plug to handle `__clerk_synced` query parameter — strips it from URL, sets session flag, and redirects to clean URL
-- **Satellite-aware FrontendConfigPlug**: Adds `is_satellite`, `manual_init`, `primary_sign_in_url`, and `domain` to `@clerk_config` when satellite mode is active
-- **Satellite component attributes**: `clerk_sign_in/1` and `clerk_sign_up/1` accept `is_satellite`, `primary_sign_in_url`, `publishable_key`, and `domain` attributes
-- **Dual-path ClerkAuth JS hook**: Supports both normal auto-init and satellite manual Clerk instantiation with `isSatellite: true`
+- **Satellite-aware FrontendConfigPlug**: Adds `is_satellite`, `primary_sign_in_url`, and `domain` to `@clerk_config` when satellite mode is active
+- **Satellite script data attributes**: `clerk_script/1` renders `data-clerk-is-satellite`, `data-clerk-domain`, and `data-clerk-sign-in-url` on the CDN script tag so Clerk.js auto-initializes with satellite config on all pages
 
 ### Fixed
 - **Redirect loop for authenticated users**: `ClerkAuth` JS hook now uses `window.location.href` instead of `pushEvent("clerk:signed-in")` for already-authenticated users, fixing redirect loops in longpoll mode
 
 ### Changed
-- `clerk_script/1` conditionally omits `data-clerk-publishable-key` when `manual_init` is true (satellite mode) to prevent Clerk.js auto-initialization
+- `ClerkAuth` JS hook simplified — satellite config now handled entirely by CDN data attributes, removing the need for dual init paths
+- `ClerkSessionMonitor` JS hook waits for Clerk to be a fully initialized object before calling `.load()`
 - `AuthEventHandler` `clerk:signed-in` event handler kept for backward compatibility but no longer fires for the already-authenticated case
 
 ## [0.2.1] - 2026-03-13

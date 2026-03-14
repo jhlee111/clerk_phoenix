@@ -588,21 +588,9 @@ pipeline :browser do
 end
 ```
 
-### LiveView Components
+### How It Works
 
-Pass satellite config from `@clerk_config` to the sign-in component:
-
-```heex
-<ClerkPhoenix.Components.clerk_sign_in
-  callback_url="/auth/callback"
-  is_satellite={@clerk_config[:is_satellite]}
-  primary_sign_in_url={@clerk_config[:primary_sign_in_url]}
-  publishable_key={@clerk_config[:publishable_key]}
-  domain={@clerk_config[:domain]}
-/>
-```
-
-The `clerk_script` component automatically handles satellite mode — it omits the `data-clerk-publishable-key` attribute when satellite is active, preventing Clerk.js auto-initialization so the JS hook can manually initialize with `isSatellite: true`.
+The `clerk_script` component automatically handles satellite mode — when `@clerk_config[:is_satellite]` is true, it renders additional data attributes on the Clerk CDN script tag (`data-clerk-is-satellite`, `data-clerk-domain`, `data-clerk-sign-in-url`). Clerk.js reads these and auto-initializes with satellite configuration on all pages. No per-component satellite config is needed.
 
 ## Security Features
 
