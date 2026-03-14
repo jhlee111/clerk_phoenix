@@ -34,9 +34,20 @@ export const ClerkAuth = {
       return;
     }
 
-    // If Clerk is already an initialized instance, use it directly
+    // If Clerk is already an initialized instance (by global init script or another hook), use it
     if (typeof window.Clerk === "object") {
       this._onClerkReady();
+      return;
+    }
+
+    // If global init is already in progress, wait for it
+    if (window.__clerkSatelliteInitPromise) {
+      window.__clerkSatelliteInitPromise.then(() => {
+        this._onClerkReady();
+      }).catch((err) => {
+        console.error("Clerk satellite init error:", err);
+        this.pushEvent("clerk:error", { error: err.message || "Failed to load Clerk satellite" });
+      });
       return;
     }
 
@@ -47,7 +58,7 @@ export const ClerkAuth = {
 
     const clerk = new window.Clerk(publishableKey);
 
-    clerk.load({
+    window.__clerkSatelliteInitPromise = clerk.load({
       isSatellite: true,
       domain: domain,
       signInUrl: primarySignInUrl

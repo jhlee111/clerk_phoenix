@@ -33,8 +33,9 @@ if Code.ensure_loaded?(Phoenix.Component) do
 
     In satellite mode (when `config[:manual_init]` is true), the
     `data-clerk-publishable-key` attribute is omitted to prevent Clerk.js
-    auto-initialization. The `ClerkAuth` hook then manually instantiates Clerk
-    with satellite options.
+    auto-initialization, and a companion inline script is rendered that globally
+    initializes Clerk with `isSatellite: true`. This ensures Clerk is available
+    on all pages, not just sign-in/sign-up pages with the `ClerkAuth` hook.
 
     ## Attributes
 
@@ -51,6 +52,17 @@ if Code.ensure_loaded?(Phoenix.Component) do
       manual_init = assigns.config[:manual_init] || assigns.config["manual_init"] || false
       assigns = assign(assigns, :manual_init, manual_init)
 
+      satellite_init_script =
+        if manual_init do
+          pk = ClerkPhoenix.JSON.encode!(assigns.config[:publishable_key] || assigns.config["publishable_key"] || "")
+          domain = ClerkPhoenix.JSON.encode!(assigns.config[:domain] || "")
+          sign_in_url = ClerkPhoenix.JSON.encode!(assigns.config[:primary_sign_in_url] || "")
+
+          "(function(){var pk=#{pk};var domain=#{domain};var signInUrl=#{sign_in_url};function i(){if(!window.Clerk){setTimeout(i,100);return}if(typeof window.Clerk===\"object\")return;if(window.__clerkSatelliteInitPromise)return;var c=new window.Clerk(pk);window.__clerkSatelliteInitPromise=c.load({isSatellite:true,domain:domain||window.location.host,signInUrl:signInUrl}).then(function(){window.Clerk=c}).catch(function(e){console.error(\"Clerk satellite init error:\",e)})}i()})()"
+        end
+
+      assigns = assign(assigns, :satellite_init_script, satellite_init_script)
+
       ~H"""
       <script
         async
@@ -59,6 +71,7 @@ if Code.ensure_loaded?(Phoenix.Component) do
         src={"#{@config[:frontend_api_url] || @config["frontend_api_url"]}/npm/@clerk/clerk-js@5/dist/clerk.browser.js"}
       >
       </script>
+      <script :if={@satellite_init_script}>{raw(@satellite_init_script)}</script>
       """
     end
 
