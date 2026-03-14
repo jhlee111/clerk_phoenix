@@ -36,7 +36,10 @@ defmodule ClerkPhoenix.Config do
       name_field: ["name", :name, "full_name", :full_name],
       image_field: ["picture", :picture, "image_url", :image_url, "avatar", :avatar],
       organizations_field: ["org", :org, "organizations", :organizations, "orgs", :orgs]
-    }
+    },
+    is_satellite: false,
+    primary_sign_in_url: nil,
+    satellite_domains: []
   }
 
   @doc """
@@ -141,6 +144,51 @@ defmodule ClerkPhoenix.Config do
   def session_expired_message(otp_app), do: get(otp_app, [:messages, :session_expired])
 
   @doc """
+  Gets the `is_satellite` configuration value (may be boolean, MFA, or function).
+  """
+  def satellite?(otp_app), do: get(otp_app, :is_satellite)
+
+  @doc """
+  Gets the primary domain sign-in URL for satellite domain flows.
+  """
+  def primary_sign_in_url(otp_app), do: get(otp_app, :primary_sign_in_url)
+
+  @doc """
+  Gets the list of satellite domains.
+  """
+  def satellite_domains(otp_app), do: get(otp_app, :satellite_domains)
+
+  @doc """
+  Resolves whether the current request is for a satellite domain.
+
+  The `is_satellite` config value can be:
+  - `false` (default) — single-domain, not a satellite
+  - `true` — this entire app is a satellite
+  - `{module, function, args}` — dynamic per-request resolution; `conn` is prepended to args
+  - `fun/1` — anonymous function receiving `conn`, returns boolean
+
+  ## Examples
+
+      # Static boolean
+      config :my_app, ClerkPhoenix, is_satellite: true
+
+      # Dynamic per-request
+      config :my_app, ClerkPhoenix,
+        is_satellite: {MyApp.ClerkHelper, :satellite?, []},
+        satellite_domains: ["bodynbrain.com"]
+  """
+  def resolve_satellite_status(otp_app, conn) do
+    case satellite?(otp_app) do
+      true -> true
+      false -> false
+      nil -> false
+      {m, f, a} -> apply(m, f, [conn | a])
+      fun when is_function(fun, 1) -> fun.(conn)
+      _ -> false
+    end
+  end
+
+  @doc """
   Gets configuration formatted for JavaScript consumption.
 
   This is used to pass configuration to the frontend Clerk.js integration.
@@ -163,6 +211,28 @@ defmodule ClerkPhoenix.Config do
       signUpFallbackRedirectUrl: after_sign_up_url(otp_app),
       afterSignOutUrl: after_sign_out_url(otp_app)
     }
+    |> ClerkPhoenix.JSON.encode!()
+  end
+
+  @doc """
+  Gets configuration formatted for JavaScript consumption with satellite overrides.
+
+  Accepts a map of additional keys to merge into the base JavaScript config.
+  Useful for including satellite-specific fields resolved per-request.
+
+  ## Examples
+
+      iex> ClerkPhoenix.Config.get_clerk_javascript_config(:my_app, %{isSatellite: true, domain: "example.com"})
+  """
+  def get_clerk_javascript_config(otp_app, satellite_overrides) when is_map(satellite_overrides) do
+    %{
+      signInUrl: sign_in_url(otp_app),
+      signUpUrl: sign_up_url(otp_app),
+      signInFallbackRedirectUrl: after_sign_in_url(otp_app),
+      signUpFallbackRedirectUrl: after_sign_up_url(otp_app),
+      afterSignOutUrl: after_sign_out_url(otp_app)
+    }
+    |> Map.merge(satellite_overrides)
     |> ClerkPhoenix.JSON.encode!()
   end
 

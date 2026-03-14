@@ -43,11 +43,14 @@ if Code.ensure_loaded?(Phoenix.Component) do
     attr :config, :map, required: true
 
     def clerk_script(assigns) do
+      manual_init = assigns.config[:manual_init] || assigns.config["manual_init"] || false
+      assigns = assign(assigns, :manual_init, manual_init)
+
       ~H"""
       <script
         async
         crossorigin="anonymous"
-        data-clerk-publishable-key={@config[:publishable_key] || @config["publishable_key"]}
+        data-clerk-publishable-key={unless @manual_init, do: @config[:publishable_key] || @config["publishable_key"]}
         src={"#{@config[:frontend_api_url] || @config["frontend_api_url"]}/npm/@clerk/clerk-js@5/dist/clerk.browser.js"}
       >
       </script>
@@ -79,6 +82,10 @@ if Code.ensure_loaded?(Phoenix.Component) do
     attr :sign_up_url, :string, default: "/sign-up"
     attr :class, :string, default: ""
     attr :id, :string, default: "clerk-sign-in"
+    attr :is_satellite, :boolean, default: false
+    attr :primary_sign_in_url, :string, default: nil
+    attr :publishable_key, :string, default: nil
+    attr :domain, :string, default: nil
 
     def clerk_sign_in(assigns) do
       ~H"""
@@ -89,6 +96,10 @@ if Code.ensure_loaded?(Phoenix.Component) do
         data-mode="sign-in"
         data-callback-url={@callback_url}
         data-sign-up-url={@sign_up_url}
+        data-is-satellite={to_string(@is_satellite)}
+        data-primary-sign-in-url={@primary_sign_in_url}
+        data-publishable-key={@publishable_key}
+        data-domain={@domain}
         class={@class}
       >
       </div>
@@ -118,6 +129,10 @@ if Code.ensure_loaded?(Phoenix.Component) do
     attr :sign_in_url, :string, default: "/sign-in"
     attr :class, :string, default: ""
     attr :id, :string, default: "clerk-sign-up"
+    attr :is_satellite, :boolean, default: false
+    attr :primary_sign_in_url, :string, default: nil
+    attr :publishable_key, :string, default: nil
+    attr :domain, :string, default: nil
 
     def clerk_sign_up(assigns) do
       ~H"""
@@ -128,6 +143,10 @@ if Code.ensure_loaded?(Phoenix.Component) do
         data-mode="sign-up"
         data-callback-url={@callback_url}
         data-sign-in-url={@sign_in_url}
+        data-is-satellite={to_string(@is_satellite)}
+        data-primary-sign-in-url={@primary_sign_in_url}
+        data-publishable-key={@publishable_key}
+        data-domain={@domain}
         class={@class}
       >
       </div>
