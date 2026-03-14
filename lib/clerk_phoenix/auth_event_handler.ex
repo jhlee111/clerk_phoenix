@@ -29,8 +29,10 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
 
     ## Injected Event Handlers
 
-    * `"clerk:signed-in"` — User was already signed in when the widget loaded.
-      Redirects to `callback_url`.
+    * `"clerk:signed-in"` — Kept for backward compatibility. As of v0.3.0, the JS hook
+      uses `window.location.href` for already-authenticated users instead of pushing
+      this event, which avoids redirect loops in longpoll mode. This handler may still
+      fire in custom hook implementations.
     * `"clerk:error"` — Clerk.js encountered an error loading or mounting.
       Sets a flash error message.
     * `"clerk:session-expired"` — `ClerkSessionMonitor` detected that the Clerk

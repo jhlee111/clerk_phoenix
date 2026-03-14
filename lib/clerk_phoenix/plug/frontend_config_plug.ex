@@ -1,14 +1,14 @@
 defmodule ClerkPhoenix.Plug.FrontendConfigPlug do
   @moduledoc """
   A plug that assigns Clerk frontend configuration to the connection.
-  
+
   This plug provides frontend-safe configuration needed for Clerk's JavaScript SDK,
   including publishable key, frontend API URL, and sign-in/sign-up routes.
-  
+
   ## Usage
-  
+
   Add to your router pipeline:
-  
+
       pipeline :browser do
         plug :accepts, ["html"]
         plug :fetch_session
@@ -18,9 +18,9 @@ defmodule ClerkPhoenix.Plug.FrontendConfigPlug do
         plug :put_secure_browser_headers
         plug ClerkPhoenix.Plug.FrontendConfigPlug, otp_app: :my_app
       end
-  
+
   ## Configuration
-  
+
       config :my_app, ClerkPhoenix,
         publishable_key: "pk_test_...",
         frontend_api_url: "https://...",
@@ -28,9 +28,9 @@ defmodule ClerkPhoenix.Plug.FrontendConfigPlug do
         sign_up_url: "/sign-up",
         after_sign_in_url: "/dashboard",
         after_sign_up_url: "/profile"
-  
+
   ## Assigns
-  
+
   This plug assigns `@clerk_config` to the connection with the following keys:
   - `:publishable_key` - Clerk publishable key for JavaScript SDK
   - `:frontend_api_url` - Clerk frontend API URL for CDN script
@@ -38,43 +38,54 @@ defmodule ClerkPhoenix.Plug.FrontendConfigPlug do
   - `:sign_up_url` - URL for sign-up page (default: "/sign-up")
   - `:after_sign_in_url` - Redirect URL after successful sign-in (default: "/")
   - `:after_sign_up_url` - Redirect URL after successful sign-up (default: "/")
+
+  When satellite domain support is configured (`is_satellite` in config), these
+  additional keys are included:
+  - `:is_satellite` - Whether the current request is for a satellite domain
+  - `:primary_sign_in_url` - The primary domain's sign-in URL
+  - `:domain` - The current request's hostname
   """
-  
+
   import Plug.Conn
-  
+
   @default_config %{
     sign_in_url: "/sign-in",
-    sign_up_url: "/sign-up", 
+    sign_up_url: "/sign-up",
     after_sign_in_url: "/",
     after_sign_up_url: "/"
   }
-  
+
   def init(opts) do
     otp_app = Keyword.fetch!(opts, :otp_app)
     %{otp_app: otp_app}
   end
-  
+
   def call(conn, %{otp_app: otp_app}) do
     conn
     |> assign_clerk_config(otp_app)
     |> store_clerk_config_in_session()
   end
-  
+
   defp assign_clerk_config(conn, otp_app) do
     config = Application.get_env(otp_app, ClerkPhoenix, [])
-    
+
     # Only assign if we have required configuration
     case {config[:publishable_key], config[:frontend_api_url]} do
-      {nil, _} -> 
+      {nil, _} ->
         conn
-      {_, nil} -> 
+      {_, nil} ->
         conn
       {publishable_key, frontend_api_url} ->
-        frontend_config = build_frontend_config(config, publishable_key, frontend_api_url)
+        is_satellite = ClerkPhoenix.Config.resolve_satellite_status(otp_app, conn)
+
+        frontend_config =
+          build_frontend_config(config, publishable_key, frontend_api_url)
+          |> maybe_add_satellite_config(is_satellite, config, conn)
+
         assign(conn, :clerk_config, frontend_config)
     end
   end
-  
+
   defp build_frontend_config(config, publishable_key, frontend_api_url) do
     @default_config
     |> Map.put(:publishable_key, publishable_key)
@@ -83,6 +94,18 @@ defmodule ClerkPhoenix.Plug.FrontendConfigPlug do
     |> Map.put(:sign_up_url, config[:sign_up_url] || @default_config.sign_up_url)
     |> Map.put(:after_sign_in_url, config[:after_sign_in_url] || @default_config.after_sign_in_url)
     |> Map.put(:after_sign_up_url, config[:after_sign_up_url] || @default_config.after_sign_up_url)
+  end
+
+  defp maybe_add_satellite_config(frontend_config, true, config, conn) do
+    frontend_config
+    |> Map.put(:is_satellite, true)
+    |> Map.put(:primary_sign_in_url, config[:primary_sign_in_url])
+    |> Map.put(:domain, conn.host)
+  end
+
+  defp maybe_add_satellite_config(frontend_config, false, _config, _conn) do
+    frontend_config
+    |> Map.put(:is_satellite, false)
   end
 
   # Store clerk config in session for LiveView access

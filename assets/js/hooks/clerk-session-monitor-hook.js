@@ -10,7 +10,8 @@ export const ClerkSessionMonitor = {
   },
 
   startMonitoring() {
-    if (!window.Clerk) {
+    // Wait for Clerk to be an initialized instance (not a constructor)
+    if (!window.Clerk || typeof window.Clerk !== "object") {
       setTimeout(() => this.startMonitoring(), 200);
       return;
     }

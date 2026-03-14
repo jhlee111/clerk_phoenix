@@ -7,6 +7,7 @@ defmodule ClerkPhoenix do
   - **JWT Validation**: Secure JWT token validation using Clerk's JWKS endpoint
   - **Session Management**: Optimized session storage with 4KB cookie limit handling
   - **Authentication Plugs**: Ready-to-use Phoenix plugs for authentication
+  - **Satellite Domain Support**: Multi-domain SSO via Clerk satellite domains
   - **Development Support**: Handshake flow for development environments
   - **Security Hardening**: Session fingerprinting, rate limiting, and input validation
   - **Error Handling**: Comprehensive error handling with user-friendly messages
@@ -18,7 +19,7 @@ defmodule ClerkPhoenix do
       ```elixir
       def deps do
         [
-          {:clerk_phoenix, "~> 0.2.0"}
+          {:clerk_phoenix, "~> 0.3.0"}
         ]
       end
       ```
@@ -79,7 +80,12 @@ defmodule ClerkPhoenix do
         messages: %{
           auth_required: "Please sign in to continue.",
           session_expired: "Your session has expired. Please sign in again."
-        }
+        },
+
+        # Satellite domain support (optional)
+        is_satellite: false,                                      # or true, {M, F, A}, or fn/1
+        primary_sign_in_url: "https://primary.example.com/sign-in",
+        satellite_domains: ["satellite.example.com"]
       ```
 
   ## Authentication Modes
@@ -130,7 +136,7 @@ defmodule ClerkPhoenix do
   @doc """
   Returns the current version of ClerkPhoenix.
   """
-  def version, do: "0.2.1"
+  def version, do: "0.3.0"
 
   @doc """
   Validates that all required configuration is present.

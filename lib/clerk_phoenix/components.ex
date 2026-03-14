@@ -31,6 +31,11 @@ if Code.ensure_loaded?(Phoenix.Component) do
     Place this in your root layout (`root.html.heex`). The script loads Clerk.js
     from Clerk's CDN using the `frontend_api_url` from your config.
 
+    In satellite mode (when `config[:is_satellite]` is true), additional data
+    attributes are rendered on the script tag (`data-clerk-domain`,
+    `data-clerk-is-satellite`, `data-clerk-sign-in-url`) so the Clerk CDN
+    auto-initializes with satellite configuration on all pages.
+
     ## Attributes
 
     * `config` (required) - Map with `:publishable_key` and `:frontend_api_url` keys.
@@ -43,11 +48,17 @@ if Code.ensure_loaded?(Phoenix.Component) do
     attr :config, :map, required: true
 
     def clerk_script(assigns) do
+      is_satellite = assigns.config[:is_satellite] || assigns.config["is_satellite"] || false
+      assigns = assign(assigns, :is_satellite, is_satellite)
+
       ~H"""
       <script
         async
         crossorigin="anonymous"
         data-clerk-publishable-key={@config[:publishable_key] || @config["publishable_key"]}
+        data-clerk-is-satellite={if @is_satellite, do: "true"}
+        data-clerk-domain={if @is_satellite, do: @config[:domain] || @config["domain"]}
+        data-clerk-sign-in-url={if @is_satellite, do: @config[:primary_sign_in_url] || @config["primary_sign_in_url"]}
         src={"#{@config[:frontend_api_url] || @config["frontend_api_url"]}/npm/@clerk/clerk-js@5/dist/clerk.browser.js"}
       >
       </script>
@@ -67,6 +78,9 @@ if Code.ensure_loaded?(Phoenix.Component) do
     * `sign_up_url` - URL for the "Sign up" link. Default: `"/sign-up"`
     * `class` - Additional CSS classes for the outer wrapper. Default: `""`
     * `id` - DOM id for the widget container. Default: `"clerk-sign-in"`
+
+    Satellite mode is configured via `clerk_script` data attributes — no
+    per-component satellite config is needed.
 
     ## Example
 
@@ -106,6 +120,9 @@ if Code.ensure_loaded?(Phoenix.Component) do
     * `sign_in_url` - URL for the "Sign in" link. Default: `"/sign-in"`
     * `class` - Additional CSS classes for the outer wrapper. Default: `""`
     * `id` - DOM id for the widget container. Default: `"clerk-sign-up"`
+
+    Satellite mode is configured via `clerk_script` data attributes — no
+    per-component satellite config is needed.
 
     ## Example
 

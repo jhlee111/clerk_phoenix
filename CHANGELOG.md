@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-03-14
+
+### Added
+- **Satellite domain support**: First-class support for [Clerk satellite domains](https://clerk.com/docs/advanced-usage/satellite-domains) enabling multi-domain SSO (#3)
+  - New config keys: `is_satellite` (boolean, MFA tuple, or function), `primary_sign_in_url`, `satellite_domains`
+  - `Config.resolve_satellite_status/2` for per-request dynamic satellite detection
+  - `Config.get_clerk_javascript_config/2` with satellite override support
+- **SatelliteSyncPlug**: New plug to handle `__clerk_synced` query parameter — strips it from URL, sets session flag, and redirects to clean URL
+- **Satellite-aware FrontendConfigPlug**: Adds `is_satellite`, `primary_sign_in_url`, and `domain` to `@clerk_config` when satellite mode is active
+- **Satellite script data attributes**: `clerk_script/1` renders `data-clerk-is-satellite`, `data-clerk-domain`, and `data-clerk-sign-in-url` on the CDN script tag so Clerk.js auto-initializes with satellite config on all pages
+
+### Fixed
+- **Redirect loop for authenticated users**: `ClerkAuth` JS hook now uses `window.location.href` instead of `pushEvent("clerk:signed-in")` for already-authenticated users, fixing redirect loops in longpoll mode
+
+### Changed
+- `ClerkAuth` JS hook simplified — satellite config now handled entirely by CDN data attributes, removing the need for dual init paths
+- `ClerkSessionMonitor` JS hook waits for Clerk to be a fully initialized object before calling `.load()`
+- `AuthEventHandler` `clerk:signed-in` event handler kept for backward compatibility but no longer fires for the already-authenticated case
+
 ## [0.2.1] - 2026-03-13
 
 ### Fixed
