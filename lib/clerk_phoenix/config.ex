@@ -4,6 +4,16 @@ defmodule ClerkPhoenix.Config do
 
   This module provides centralized configuration management with smart defaults
   and validation for Clerk authentication settings.
+
+  ## Satellite Domain Configuration
+
+  For multi-domain SSO, configure satellite domain support:
+
+  - `is_satellite` - `false` (default), `true`, `{module, function, args}`, or `fn conn -> bool end`
+  - `primary_sign_in_url` - The primary domain's sign-in URL (required when satellite)
+  - `satellite_domains` - List of satellite domain hostnames
+
+  Use `resolve_satellite_status/2` to evaluate the `is_satellite` config per-request.
   """
 
   @required_keys [:publishable_key, :secret_key, :frontend_api_url]

@@ -31,6 +31,11 @@ if Code.ensure_loaded?(Phoenix.Component) do
     Place this in your root layout (`root.html.heex`). The script loads Clerk.js
     from Clerk's CDN using the `frontend_api_url` from your config.
 
+    In satellite mode (when `config[:manual_init]` is true), the
+    `data-clerk-publishable-key` attribute is omitted to prevent Clerk.js
+    auto-initialization. The `ClerkAuth` hook then manually instantiates Clerk
+    with satellite options.
+
     ## Attributes
 
     * `config` (required) - Map with `:publishable_key` and `:frontend_api_url` keys.
@@ -70,12 +75,26 @@ if Code.ensure_loaded?(Phoenix.Component) do
     * `sign_up_url` - URL for the "Sign up" link. Default: `"/sign-up"`
     * `class` - Additional CSS classes for the outer wrapper. Default: `""`
     * `id` - DOM id for the widget container. Default: `"clerk-sign-in"`
+    * `is_satellite` - Whether this is a satellite domain. Default: `false`
+    * `primary_sign_in_url` - Primary domain sign-in URL (required for satellite). Default: `nil`
+    * `publishable_key` - Clerk publishable key (required for satellite manual init). Default: `nil`
+    * `domain` - Current domain for satellite mode. Default: `nil`
 
     ## Example
 
         <ClerkPhoenix.Components.clerk_sign_in
           callback_url="/clerk/callback"
           sign_up_url="/clerk/sign-up"
+        />
+
+    ### Satellite domain example
+
+        <ClerkPhoenix.Components.clerk_sign_in
+          callback_url="/clerk/callback"
+          is_satellite={@clerk_config[:is_satellite]}
+          primary_sign_in_url={@clerk_config[:primary_sign_in_url]}
+          publishable_key={@clerk_config[:publishable_key]}
+          domain={@clerk_config[:domain]}
         />
     """
     attr :callback_url, :string, default: "/auth/callback"
@@ -117,6 +136,10 @@ if Code.ensure_loaded?(Phoenix.Component) do
     * `sign_in_url` - URL for the "Sign in" link. Default: `"/sign-in"`
     * `class` - Additional CSS classes for the outer wrapper. Default: `""`
     * `id` - DOM id for the widget container. Default: `"clerk-sign-up"`
+    * `is_satellite` - Whether this is a satellite domain. Default: `false`
+    * `primary_sign_in_url` - Primary domain sign-in URL (required for satellite). Default: `nil`
+    * `publishable_key` - Clerk publishable key (required for satellite manual init). Default: `nil`
+    * `domain` - Current domain for satellite mode. Default: `nil`
 
     ## Example
 

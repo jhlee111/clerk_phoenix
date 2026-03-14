@@ -32,7 +32,7 @@ Add `clerk_phoenix` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:clerk_phoenix, "~> 0.2.0"}
+    {:clerk_phoenix, "~> 0.3.0"}
   ]
 end
 ```
@@ -247,20 +247,8 @@ Update your `lib/your_app_web/components/layouts/root.html.heex`:
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>
     
-    <!-- Clerk JavaScript SDK -->
-    <script
-      async
-      crossorigin="anonymous"
-      data-clerk-publishable-key={@clerk_config[:publishable_key]}
-      src={"#{@clerk_config[:frontend_api_url]}/npm/@clerk/clerk-js@5/dist/clerk.browser.js"}
-      type="text/javascript"
-    >
-    </script>
-    
-    <!-- Clerk Configuration -->
-    <script>
-      window.__clerk_config__ = <%= raw(Jason.encode!(@clerk_config || %{})) %>
-    </script>
+    <!-- Clerk JavaScript SDK (handles satellite mode automatically) -->
+    <ClerkPhoenix.Components.clerk_script :if={assigns[:clerk_config]} config={@clerk_config} />
   </head>
   <body>
     {@inner_content}
@@ -480,7 +468,7 @@ end
 
 ### LiveView Integration
 
-ClerkPhoenix v0.2.0 provides first-class LiveView support. Instead of dead-view controllers, use LiveView pages with Clerk components:
+ClerkPhoenix provides first-class LiveView support. Instead of dead-view controllers, use LiveView pages with Clerk components:
 
 #### Root Layout
 
@@ -558,6 +546,63 @@ defmodule YourAppWeb.DashboardLive do
 end
 ```
 
+
+## Satellite Domain Support
+
+ClerkPhoenix supports [Clerk satellite domains](https://clerk.com/docs/advanced-usage/satellite-domains) for multi-domain SSO. This allows users to authenticate across different top-level domains (e.g., `gsnet.run` and `bodynbrain.com`) sharing the same Clerk instance.
+
+### Configuration
+
+```elixir
+# config/runtime.exs
+config :my_app, ClerkPhoenix,
+  publishable_key: "pk_live_...",
+  secret_key: "sk_live_...",
+  frontend_api_url: "https://clerk.example.com",
+
+  # Satellite domain support
+  is_satellite: true,                                          # static: entire app is satellite
+  primary_sign_in_url: "https://primary.example.com/sign-in",  # required when satellite
+  satellite_domains: ["satellite.example.com"]
+```
+
+For apps serving both primary and satellite domains from the same Phoenix instance, use dynamic detection:
+
+```elixir
+config :my_app, ClerkPhoenix,
+  is_satellite: fn conn -> conn.host in ["satellite.example.com"] end,
+  # or MFA: {MyApp.ClerkHelper, :satellite?, [["satellite.example.com"]]}
+  primary_sign_in_url: "https://primary.example.com/sign-in"
+```
+
+### Router Setup
+
+Add `SatelliteSyncPlug` **before** the auth plug to handle the `__clerk_synced` redirect parameter:
+
+```elixir
+pipeline :browser do
+  plug :accepts, ["html"]
+  plug :fetch_session
+  plug ClerkPhoenix.Plug.SatelliteSyncPlug
+  plug ClerkPhoenix.Plug.FrontendConfigPlug, otp_app: :my_app
+end
+```
+
+### LiveView Components
+
+Pass satellite config from `@clerk_config` to the sign-in component:
+
+```heex
+<ClerkPhoenix.Components.clerk_sign_in
+  callback_url="/auth/callback"
+  is_satellite={@clerk_config[:is_satellite]}
+  primary_sign_in_url={@clerk_config[:primary_sign_in_url]}
+  publishable_key={@clerk_config[:publishable_key]}
+  domain={@clerk_config[:domain]}
+/>
+```
+
+The `clerk_script` component automatically handles satellite mode — it omits the `data-clerk-publishable-key` attribute when satellite is active, preventing Clerk.js auto-initialization so the JS hook can manually initialize with `isSatellite: true`.
 
 ## Security Features
 

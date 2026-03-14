@@ -38,6 +38,13 @@ defmodule ClerkPhoenix.Plug.FrontendConfigPlug do
   - `:sign_up_url` - URL for sign-up page (default: "/sign-up")
   - `:after_sign_in_url` - Redirect URL after successful sign-in (default: "/")
   - `:after_sign_up_url` - Redirect URL after successful sign-up (default: "/")
+
+  When satellite domain support is configured (`is_satellite` in config), these
+  additional keys are included:
+  - `:is_satellite` - Whether the current request is for a satellite domain
+  - `:manual_init` - Whether Clerk.js should skip auto-init (true for satellite)
+  - `:primary_sign_in_url` - The primary domain's sign-in URL
+  - `:domain` - The current request's hostname
   """
 
   import Plug.Conn
